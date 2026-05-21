@@ -264,6 +264,28 @@ table tbody tr:hover{background:var(--surface)}
 .diff-block .old{color:var(--danger);text-decoration:line-through}
 .diff-block .new{color:var(--success);font-weight:600}
  
+/* Searchable dropdown for vehicles */
+.sd-wrap{position:relative}
+.sd-results{
+  position:absolute;top:100%;left:0;right:0;z-index:30;
+  background:#fff;border:1px solid var(--border-dark);border-top:none;
+  border-radius:0 0 var(--radius-sm) var(--radius-sm);
+  max-height:260px;overflow-y:auto;
+  box-shadow:0 6px 16px rgba(15,23,42,.12);
+  display:none;
+}
+.sd-results.show{display:block}
+.sd-item{
+  padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--surface-2);
+}
+.sd-item:hover,.sd-item.active{background:var(--accent-light)}
+.sd-item:last-child{border-bottom:none}
+.sd-item .sd-name{font-weight:600;font-size:14px;color:var(--text)}
+.sd-item .sd-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.sd-item .sd-meta .sd-pill{display:inline-block;padding:1px 6px;background:var(--surface-2);border-radius:999px;margin-right:4px}
+.sd-empty{padding:18px 12px;text-align:center;color:var(--text-muted);font-size:12px}
+.sd-selected{background:#ecfeff;border-color:var(--accent)!important}
+ 
 @media(max-width:520px){
   .topbar{padding:8px 12px}
   .brand{font-size:13px}
@@ -346,7 +368,7 @@ table tbody tr:hover{background:var(--surface)}
 <!-- ==================== DASHBOARD SCREEN ==================== -->
 <div id="dash-screen" class="screen">
   <div class="topbar">
-    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v1.2</span></div>
+    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v1.3</span></div>
     <span id="sync-pill" class="sync-pill sync-online"><span class="dot"></span><span id="sync-text">Online</span></span>
     <div class="topbar-spacer"></div>
     <div class="who"><b id="who-name">—</b><span id="who-role">—</span></div>
@@ -619,7 +641,13 @@ function gotoLogin(){
   $('#login-mgr-pass').value=''; $('#login-owner-pass').value='';
   refreshManagerLoginDropdown();
 }
-function gotoDash(){ showScreen('dash-screen'); renderDash(); }
+function gotoDash(){
+  showScreen('dash-screen'); renderDash();
+  // Force fresh pull on every dashboard entry so manager sees latest vehicles/fields
+  if(sb && state.online){
+    pullAll().then(()=>{ if(state.user) renderDash(); });
+  }
+}
  
 function refreshManagerLoginDropdown(){
   const sel = $('#login-mgr-select');
@@ -1360,7 +1388,7 @@ function renderSettings(page){
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
         💡 If sync is stuck or you see UUID errors, tap <b>Wipe local cache</b> — it erases this device's local data and queued operations, then reloads fresh from server. Server data stays safe.
       </div>
-      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v1.2</div>
+      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v1.3</div>
     </div>
   `;
   $('#set-calc').addEventListener('change', e=>{
@@ -1404,13 +1432,12 @@ function renderNewEntry(page){
     <div class="section">
       <div class="section-h"><h3>New Fuel Entry</h3><span class="sub">${state.user.name}</span></div>
  
-      <div class="form-row">
+      <div class="form-row sd-wrap">
         <label>Vehicle / Machine *</label>
-        <input type="text" id="ne-vehicle" list="ne-vehicle-list" placeholder="Type to search…" autocomplete="off">
-        <datalist id="ne-vehicle-list">
-          ${activeVehicles.map(v=>`<option value="${escapeHtml(v.name)}" data-id="${v.id}">${escapeHtml(v.name)} — ${escapeHtml(v.reg_no||'')} ${escapeHtml(v.branch||'')}</option>`).join('')}
-        </datalist>
-        <div class="hint">Searchable. ${activeVehicles.length} vehicles available.</div>
+        <input type="text" id="ne-vehicle" placeholder="${activeVehicles.length===0 ? 'No vehicles yet — ask owner to add' : 'Search by name, reg no, or branch…'}" autocomplete="off" ${activeVehicles.length===0?'disabled':''}>
+        <input type="hidden" id="ne-vehicle-id">
+        <div id="ne-vehicle-results" class="sd-results"></div>
+        <div class="hint">${activeVehicles.length} vehicle${activeVehicles.length===1?'':'s'} available</div>
       </div>
  
       <div class="grid grid-2">
@@ -1444,6 +1471,8 @@ function renderNewEntry(page){
     </div>
   `;
  
+  wireVehicleSearch('ne-vehicle', 'ne-vehicle-id', 'ne-vehicle-results', activeVehicles, null);
+ 
   // source pill toggle
   page.querySelectorAll('.source-pill').forEach(p=>p.addEventListener('click', ()=>{
     page.querySelectorAll('.source-pill').forEach(x=>x.classList.remove('active'));
@@ -1452,10 +1481,81 @@ function renderNewEntry(page){
   }));
 }
  
+// Reusable searchable vehicle picker
+function wireVehicleSearch(inputId, hiddenId, resultsId, vehicles, preselectId){
+  const inp = document.getElementById(inputId);
+  const hid = document.getElementById(hiddenId);
+  const res = document.getElementById(resultsId);
+  if(!inp || !hid || !res) return;
+ 
+  function render(q){
+    const query = (q||'').toLowerCase().trim();
+    let list = vehicles;
+    if(query){
+      list = vehicles.filter(v => {
+        const hay = ((v.name||'')+' '+(v.reg_no||'')+' '+(v.branch||'')+' '+(v.type||'')).toLowerCase();
+        return hay.includes(query);
+      });
+    }
+    if(list.length===0){
+      res.innerHTML = `<div class="sd-empty">${vehicles.length===0?'No vehicles available':'No matches — try another keyword'}</div>`;
+    } else {
+      res.innerHTML = list.slice(0,30).map(v=>`
+        <div class="sd-item" data-id="${escapeHtml(v.id)}">
+          <div class="sd-name">${escapeHtml(v.name)}</div>
+          <div class="sd-meta">
+            <span class="sd-pill">${escapeHtml(v.type||'vehicle')}</span>
+            ${v.reg_no?'<span class="sd-pill">'+escapeHtml(v.reg_no)+'</span>':''}
+            ${v.branch?'<span class="sd-pill">'+escapeHtml(v.branch)+'</span>':''}
+          </div>
+        </div>
+      `).join('');
+    }
+    res.classList.add('show');
+  }
+ 
+  function selectVehicle(v){
+    inp.value = v.name + (v.reg_no?' ('+v.reg_no+')':'');
+    hid.value = v.id;
+    inp.classList.add('sd-selected');
+    res.classList.remove('show');
+  }
+ 
+  if(preselectId){
+    const v = vehicles.find(x=>x.id===preselectId);
+    if(v) selectVehicle(v);
+  }
+ 
+  inp.addEventListener('focus', ()=>render(''));
+  inp.addEventListener('input', ()=>{
+    hid.value = '';
+    inp.classList.remove('sd-selected');
+    render(inp.value);
+  });
+  inp.addEventListener('blur', ()=>{
+    // delay to allow click on result
+    setTimeout(()=>res.classList.remove('show'), 200);
+  });
+  res.addEventListener('mousedown', e=>{
+    // mousedown fires before blur — prevents the input losing focus from killing the click
+    const item = e.target.closest('.sd-item');
+    if(!item) return;
+    e.preventDefault();
+    const v = vehicles.find(x=>x.id===item.dataset.id);
+    if(v) selectVehicle(v);
+  });
+  res.addEventListener('touchstart', e=>{
+    const item = e.target.closest('.sd-item');
+    if(!item) return;
+    const v = vehicles.find(x=>x.id===item.dataset.id);
+    if(v) selectVehicle(v);
+  });
+}
+ 
 window.saveNewEntry = function(){
-  const vehName = $('#ne-vehicle').value.trim();
-  const veh = state.vehicles.find(v=>v.name.toLowerCase()===vehName.toLowerCase());
-  if(!veh){ toast('Select valid vehicle from list','err'); return; }
+  const vehId = $('#ne-vehicle-id').value;
+  const veh = state.vehicles.find(v=>v.id===vehId);
+  if(!veh){ toast('Tap to select a vehicle from the list','err'); return; }
   const hmr = parseFloat($('#ne-hmr').value);
   const qty = parseFloat($('#ne-qty').value);
   if(isNaN(hmr)){ toast('HMR required','err'); return; }
@@ -1515,11 +1615,10 @@ window.editEntryModal = function(id){
   const activeVehicles = state.vehicles.filter(v=>v.active!==false || v.id===e.vehicle_id);
  
   openModal('Edit Entry', `
-    <div class="form-row"><label>Vehicle</label>
-      <input type="text" id="ee-vehicle" list="ee-vehicle-list" value="${escapeHtml(veh?veh.name:'')}" autocomplete="off">
-      <datalist id="ee-vehicle-list">
-        ${activeVehicles.map(v=>`<option value="${escapeHtml(v.name)}">`).join('')}
-      </datalist>
+    <div class="form-row sd-wrap"><label>Vehicle</label>
+      <input type="text" id="ee-vehicle" placeholder="Search by name, reg no, or branch…" autocomplete="off">
+      <input type="hidden" id="ee-vehicle-id" value="${escapeHtml(e.vehicle_id||'')}">
+      <div id="ee-vehicle-results" class="sd-results"></div>
     </div>
     <div class="grid grid-2">
       <div class="form-row"><label>HMR</label><input type="number" step="0.1" id="ee-hmr" value="${e.hmr||''}"></div>
@@ -1546,6 +1645,9 @@ window.editEntryModal = function(id){
     <button class="btn" style="width:100%" onclick="saveEditEntry('${id}')">Save Changes</button>
   `);
  
+  // wire searchable vehicle picker with pre-selection
+  wireVehicleSearch('ee-vehicle', 'ee-vehicle-id', 'ee-vehicle-results', activeVehicles, e.vehicle_id);
+ 
   // wire source toggle
   $('#ee-src').addEventListener('change', ev=>{
     $('#ee-src-custom').style.display = ev.target.value==='other' ? '' : 'none';
@@ -1554,9 +1656,9 @@ window.editEntryModal = function(id){
  
 window.saveEditEntry = function(id){
   const e = state.entries.find(x=>x.id===id); if(!e) return;
-  const vehName = $('#ee-vehicle').value.trim();
-  const veh = state.vehicles.find(v=>v.name.toLowerCase()===vehName.toLowerCase());
-  if(!veh){ toast('Select valid vehicle','err'); return; }
+  const vehId = $('#ee-vehicle-id').value;
+  const veh = state.vehicles.find(v=>v.id===vehId);
+  if(!veh){ toast('Tap to select a vehicle from the list','err'); return; }
   const src = $('#ee-src').value;
   const srcCustom = src==='other' ? $('#ee-src-custom').value.trim() : '';
  
