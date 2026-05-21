@@ -346,7 +346,7 @@ table tbody tr:hover{background:var(--surface)}
 <!-- ==================== DASHBOARD SCREEN ==================== -->
 <div id="dash-screen" class="screen">
   <div class="topbar">
-    <div class="brand">TASR <span class="accent">BharatNext</span></div>
+    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v1.2</span></div>
     <span id="sync-pill" class="sync-pill sync-online"><span class="dot"></span><span id="sync-text">Online</span></span>
     <div class="topbar-spacer"></div>
     <div class="who"><b id="who-name">—</b><span id="who-role">—</span></div>
@@ -455,28 +455,45 @@ const uuid = () => {
 function migrateIdsToUuid(){
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const idMap = {};
-  let migrated = 0;
+  let changed = false;
+  // 1. Fix IDs in state arrays
   ['vehicles','customFields','entries'].forEach(key => {
-    state[key].forEach(item => {
-      if(!item.id || !uuidRe.test(item.id)){
+    (state[key]||[]).forEach(item => {
+      if(item && (!item.id || !uuidRe.test(item.id))){
         const oldId = item.id;
         item.id = uuid();
         if(oldId) idMap[oldId] = item.id;
-        migrated++;
+        changed = true;
       }
     });
   });
-  // cascade fix: entries → vehicle_id may reference old IDs
-  state.entries.forEach(e => {
-    if(e.vehicle_id && idMap[e.vehicle_id]) e.vehicle_id = idMap[e.vehicle_id];
+  // 2. Cascade-fix vehicle_id refs in entries
+  (state.entries||[]).forEach(e => {
+    if(e && e.vehicle_id && idMap[e.vehicle_id]){
+      e.vehicle_id = idMap[e.vehicle_id];
+      changed = true;
+    }
   });
-  if(migrated > 0){
-    state.pendingOps = [];
-    state.vehicles.forEach(v => state.pendingOps.push({table:'vehicles', action:'upsert', data:v, ts:Date.now(), id:uuid()}));
-    state.customFields.forEach(f => state.pendingOps.push({table:'custom_fields', action:'upsert', data:f, ts:Date.now(), id:uuid()}));
-    state.entries.forEach(e => state.pendingOps.push({table:'entries', action:'upsert', data:e, ts:Date.now(), id:uuid()}));
+  // 3. ALWAYS scan pendingOps. For UUID-tables, fix via idMap or DROP if unfixable.
+  const needsUuid = {vehicles:1, custom_fields:1, entries:1};
+  const cleaned = [];
+  for(const op of (state.pendingOps||[])){
+    if(!op || !op.data){ cleaned.push(op); continue; }
+    let drop = false;
+    if(needsUuid[op.table] && op.data.id && !uuidRe.test(op.data.id)){
+      if(idMap[op.data.id]){ op.data.id = idMap[op.data.id]; changed = true; }
+      else { drop = true; changed = true; }
+    }
+    if(op.table === 'entries' && op.data.vehicle_id && idMap[op.data.vehicle_id]){
+      op.data.vehicle_id = idMap[op.data.vehicle_id];
+      changed = true;
+    }
+    if(!drop) cleaned.push(op);
+  }
+  state.pendingOps = cleaned;
+  if(changed){
     persist();
-    console.log('[TASR] Migrated '+migrated+' IDs to UUID; re-queued '+state.pendingOps.length+' items for sync');
+    console.log('[TASR Migration] vehicles:'+state.vehicles.length+' entries:'+state.entries.length+' pendingOps:'+state.pendingOps.length);
   }
 }
 const fmtDT = ts => {
@@ -1338,7 +1355,12 @@ function renderSettings(page){
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn small ghost" onclick="manualSync()">🔄 Sync now</button>
         <button class="btn small ghost" onclick="manualPull()">⬇ Pull from server</button>
+        <button class="btn small danger" onclick="wipeLocalCache()">🗑 Wipe local cache</button>
       </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
+        💡 If sync is stuck or you see UUID errors, tap <b>Wipe local cache</b> — it erases this device's local data and queued operations, then reloads fresh from server. Server data stays safe.
+      </div>
+      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v1.2</div>
     </div>
   `;
   $('#set-calc').addEventListener('change', e=>{
@@ -1362,6 +1384,13 @@ window.saveOwnerPwd = function(){
 };
 window.manualSync = async function(){ await trySync(); toast('Sync done','ok'); renderDash(); };
 window.manualPull = async function(){ await pullAll(); toast('Pulled from server','ok'); renderDash(); };
+window.wipeLocalCache = function(){
+  if(!confirm('Wipe local cache?\n\nThis erases all data and queued sync ops on THIS device only.\nServer data is safe and will be re-fetched on reload.')) return;
+  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem('tasr_device_id');
+  toast('Local cache wiped — reloading…','ok');
+  setTimeout(()=>location.reload(), 600);
+};
  
 // ============================================================
 // MANAGER VIEWS
