@@ -200,6 +200,33 @@ table tbody tr:hover{background:var(--surface)}
 .kpi .val{font-size:22px;font-weight:700;color:var(--text);margin-top:2px}
 .kpi .sub{font-size:11px;color:var(--text-muted);margin-top:2px}
  
+/* Bowser stock card */
+.bowser-card{
+  background:#fff;border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px;box-shadow:var(--shadow);
+}
+.bowser-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:8px;flex-wrap:wrap}
+.bowser-h .bn{font-size:13px;font-weight:700;letter-spacing:.3px}
+.bowser-h .bv{font-size:13px;color:var(--text-muted)}
+.bowser-h .bv b{font-size:20px;color:var(--text)}
+.bowser-bar{height:10px;background:var(--surface-2);border-radius:999px;overflow:hidden;margin-bottom:6px}
+.bowser-fill{height:100%;border-radius:999px;transition:width .3s,background .3s}
+.bowser-meta{font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center}
+.bowser-meta .refill-btn{font-size:11px;padding:3px 10px;background:var(--accent);color:#fff;border-radius:999px;font-weight:600}
+.bowser-meta .refill-btn:hover{background:var(--accent-dark)}
+ 
+/* Bowser stock banner (above source pills in new entry) */
+.bowser-banner{
+  display:flex;gap:10px;padding:10px 12px;background:var(--surface);
+  border-radius:var(--radius-sm);margin-bottom:6px;font-size:12px;
+}
+.bowser-banner .b-item{flex:1;display:flex;flex-direction:column;align-items:center}
+.bowser-banner .b-item .lbl{color:var(--text-muted);font-weight:600;font-size:10px;letter-spacing:.4px;text-transform:uppercase}
+.bowser-banner .b-item .val{font-weight:700;font-size:15px;margin-top:2px}
+.bowser-banner .b-item .val.low{color:var(--danger)}
+.bowser-banner .b-item .val.mid{color:var(--warn)}
+.bowser-banner .b-item .val.ok{color:var(--success)}
+ 
 .empty{text-align:center;padding:30px 20px;color:var(--text-muted);font-size:13px}
 .empty .em{font-size:30px;margin-bottom:6px}
  
@@ -246,6 +273,23 @@ table tbody tr:hover{background:var(--surface)}
  
 /* Entry form specifics */
 .source-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+ 
+/* PIN Pad */
+.pin-section{background:var(--surface);border-radius:12px;padding:14px;margin-bottom:8px}
+.pin-display{display:flex;justify-content:center;gap:12px;margin-bottom:14px;padding:8px;min-height:28px;align-items:center;flex-wrap:wrap}
+.pin-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--border-dark);background:transparent;transition:transform .12s,background .12s,border-color .12s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.15)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pin-btn{
+  height:54px;border-radius:12px;background:#fff;border:1px solid var(--border-dark);
+  font-size:22px;font-weight:500;color:var(--text);
+  transition:transform .05s,background .15s;user-select:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.pin-btn:active{transform:scale(.94);background:var(--accent-light)}
+.pin-btn.pin-back{background:var(--surface-2);color:var(--text-muted);font-size:20px}
+.pin-btn.pin-ok{background:var(--accent);color:#fff;font-weight:600;font-size:18px}
+.pin-btn.pin-ok:active{background:var(--accent-dark)}
 .source-pill{
   flex:1;min-width:80px;padding:9px 10px;border:1px solid var(--border-dark);
   border-radius:var(--radius-sm);background:#fff;font-weight:600;font-size:12px;
@@ -348,19 +392,18 @@ table tbody tr:hover{background:var(--surface)}
         <select id="login-mgr-select"><option value="">— select —</option></select>
       </div>
       <div class="form-row">
-        <label>Password</label>
-        <input type="password" id="login-mgr-pass" placeholder="Enter password" autocomplete="off">
+        <label>Enter PIN</label>
+        <div id="login-mgr-pin"></div>
       </div>
     </div>
  
     <div id="login-owner" style="display:none">
       <div class="form-row">
-        <label>Owner password</label>
-        <input type="password" id="login-owner-pass" placeholder="Enter owner password" autocomplete="off">
+        <label>Owner PIN</label>
+        <div id="login-owner-pin"></div>
       </div>
     </div>
  
-    <button class="btn" id="login-btn" style="width:100%;padding:11px">Login</button>
     <button class="btn ghost" id="login-back" style="width:100%;margin-top:8px">← Back to calculator</button>
   </div>
 </div>
@@ -368,7 +411,7 @@ table tbody tr:hover{background:var(--surface)}
 <!-- ==================== DASHBOARD SCREEN ==================== -->
 <div id="dash-screen" class="screen">
   <div class="topbar">
-    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v1.3</span></div>
+    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v1.6</span></div>
     <span id="sync-pill" class="sync-pill sync-online"><span class="dot"></span><span id="sync-text">Online</span></span>
     <div class="topbar-spacer"></div>
     <div class="who"><b id="who-name">—</b><span id="who-role">—</span></div>
@@ -430,6 +473,10 @@ const state = {
     owner_password: DEFAULT_OWNER_PWD,
     secret_code: DEFAULT_SECRET,
     calculator_enabled: 'true',
+    bowser_t1_capacity: '3200',
+    bowser_t1_stock: '3200',
+    bowser_t2_capacity: '3200',
+    bowser_t2_stock: '3200',
   },
   pendingOps: [],          // offline queue
   online: navigator.onLine,
@@ -545,6 +592,29 @@ function closeModal(){ $('#modal').classList.remove('active'); }
 window.closeModal = closeModal;
  
 // ============================================================
+// BOWSER STOCK (T1 & T2 — capacity 3200 L each)
+// ============================================================
+function getBowserStock(tank){ return +(state.settings['bowser_'+tank+'_stock']) || 0; }
+function getBowserCapacity(tank){ return +(state.settings['bowser_'+tank+'_capacity']) || 3200; }
+ 
+// Apply the stock delta when an entry is created, updated, or deleted.
+// Pass oldEntry=null for new entries; newEntry=null when the entry is being removed.
+function applyBowserDelta(oldEntry, newEntry){
+  const sources = { bowser_t1: 't1', bowser_t2: 't2' };
+  const delta = { t1: 0, t2: 0 };
+  if(oldEntry && sources[oldEntry.source]) delta[sources[oldEntry.source]] += +(oldEntry.quantity||0); // restore
+  if(newEntry && sources[newEntry.source]) delta[sources[newEntry.source]] -= +(newEntry.quantity||0); // consume
+  ['t1','t2'].forEach(tank => {
+    if(delta[tank] === 0) return;
+    const key = 'bowser_'+tank+'_stock';
+    const curr = +(state.settings[key]) || 0;
+    const cap = getBowserCapacity(tank);
+    const next = Math.max(0, Math.min(cap, curr + delta[tank]));
+    updateSetting(key, next);
+  });
+}
+ 
+// ============================================================
 // 10 manager slots — ensure local array always has 10 entries
 // ============================================================
 function ensureManagerSlots(){
@@ -634,18 +704,16 @@ function showScreen(id){
 }
 function gotoCalc(){ showScreen('calc-screen'); calcState.expr=''; calcState.history=''; calcRender(); }
 function gotoLogin(){
-  // if calculator disguise is disabled, login is shown directly anyway
-  // here we always show login when entered properly
   showScreen('login-screen');
   $('#login-msg').innerHTML='';
-  $('#login-mgr-pass').value=''; $('#login-owner-pass').value='';
   refreshManagerLoginDropdown();
+  setupLoginPinPads();
 }
 function gotoDash(){
   showScreen('dash-screen'); renderDash();
   // Force fresh pull on every dashboard entry so manager sees latest vehicles/fields
   if(sb && state.online){
-    pullAll().then(()=>{ if(state.user) renderDash(); });
+    pullAll().then(()=>{ if(state.user) renderDash({auto:true}); });
   }
 }
  
@@ -663,6 +731,87 @@ function bootScreen(){
 }
  
 // ============================================================
+// PIN PAD COMPONENT
+// ============================================================
+function makePinPad(containerEl, opts){
+  opts = opts || {};
+  let pin = '';
+  const minDots = opts.minDots || 4;
+  const maxLen = opts.maxLen || 8;
+ 
+  containerEl.innerHTML = `
+    <div class="pin-section">
+      <div class="pin-display"></div>
+      <div class="pin-pad">
+        <button type="button" class="pin-btn" data-d="1">1</button>
+        <button type="button" class="pin-btn" data-d="2">2</button>
+        <button type="button" class="pin-btn" data-d="3">3</button>
+        <button type="button" class="pin-btn" data-d="4">4</button>
+        <button type="button" class="pin-btn" data-d="5">5</button>
+        <button type="button" class="pin-btn" data-d="6">6</button>
+        <button type="button" class="pin-btn" data-d="7">7</button>
+        <button type="button" class="pin-btn" data-d="8">8</button>
+        <button type="button" class="pin-btn" data-d="9">9</button>
+        <button type="button" class="pin-btn pin-back" data-d="back">⌫</button>
+        <button type="button" class="pin-btn" data-d="0">0</button>
+        <button type="button" class="pin-btn pin-ok" data-d="ok">✓</button>
+      </div>
+    </div>
+  `;
+  const display = containerEl.querySelector('.pin-display');
+  const pad = containerEl.querySelector('.pin-pad');
+ 
+  function render(){
+    const shown = Math.max(pin.length, minDots);
+    display.innerHTML = Array.from({length:shown}, (_,i) =>
+      `<span class="pin-dot ${i<pin.length?'filled':''}"></span>`).join('');
+  }
+  function press(d){
+    if(d==='back') pin = pin.slice(0,-1);
+    else if(d==='ok'){ if(opts.onSubmit) opts.onSubmit(pin); return; }
+    else if(/^\d$/.test(d) && pin.length<maxLen) pin += d;
+    render();
+  }
+  pad.addEventListener('click', e=>{
+    const b = e.target.closest('[data-d]'); if(b) press(b.dataset.d);
+  });
+  render();
+  return {
+    getPin: ()=>pin,
+    clear: ()=>{ pin=''; render(); },
+  };
+}
+ 
+let _mgrPinPad = null, _ownerPinPad = null;
+function setupLoginPinPads(){
+  _mgrPinPad = makePinPad($('#login-mgr-pin'), {
+    onSubmit: pin => doManagerLogin(pin),
+  });
+  _ownerPinPad = makePinPad($('#login-owner-pin'), {
+    onSubmit: pin => doOwnerLogin(pin),
+  });
+}
+function doOwnerLogin(pin){
+  if(pin && pin === state.settings.owner_password){
+    state.user = {role:'owner', name:'Owner'};
+    state.activeTab = 'overview';
+    gotoDash();
+  } else {
+    $('#login-msg').innerHTML = '<div class="msg err">Incorrect owner PIN</div>';
+    if(_ownerPinPad) _ownerPinPad.clear();
+  }
+}
+function doManagerLogin(pin){
+  const id = parseInt($('#login-mgr-select').value);
+  const mgr = state.managers.find(m=>m.id===id && m.active);
+  if(!mgr){ $('#login-msg').innerHTML = '<div class="msg err">Select your name first</div>'; if(_mgrPinPad) _mgrPinPad.clear(); return; }
+  if(mgr.password !== pin){ $('#login-msg').innerHTML = '<div class="msg err">Incorrect PIN</div>'; if(_mgrPinPad) _mgrPinPad.clear(); return; }
+  state.user = {role:'manager', id:mgr.id, name:mgr.name};
+  state.activeTab = 'new-entry';
+  gotoDash();
+}
+ 
+// ============================================================
 // LOGIN
 // ============================================================
 $$('.role-tab').forEach(t=>t.addEventListener('click', ()=>{
@@ -672,32 +821,11 @@ $$('.role-tab').forEach(t=>t.addEventListener('click', ()=>{
   $('#login-manager').style.display = r==='manager' ? '' : 'none';
   $('#login-owner').style.display   = r==='owner'   ? '' : 'none';
   $('#login-msg').innerHTML='';
+  if(_mgrPinPad) _mgrPinPad.clear();
+  if(_ownerPinPad) _ownerPinPad.clear();
 }));
  
 $('#login-back').addEventListener('click', gotoCalc);
- 
-$('#login-btn').addEventListener('click', ()=>{
-  const role = document.querySelector('.role-tab.active').dataset.role;
-  if(role==='owner'){
-    const pw = $('#login-owner-pass').value;
-    if(pw && pw === state.settings.owner_password){
-      state.user = {role:'owner', name:'Owner'};
-      state.activeTab = 'overview';
-      gotoDash();
-    } else {
-      $('#login-msg').innerHTML = '<div class="msg err">Incorrect owner password</div>';
-    }
-  } else {
-    const id = parseInt($('#login-mgr-select').value);
-    const pw = $('#login-mgr-pass').value;
-    const mgr = state.managers.find(m=>m.id===id && m.active);
-    if(!mgr){ $('#login-msg').innerHTML = '<div class="msg err">Select your name first</div>'; return; }
-    if(mgr.password !== pw){ $('#login-msg').innerHTML = '<div class="msg err">Incorrect password</div>'; return; }
-    state.user = {role:'manager', id:mgr.id, name:mgr.name};
-    state.activeTab = 'new-entry';
-    gotoDash();
-  }
-});
  
 $('#logout-btn').addEventListener('click', ()=>{
   state.user = null;
@@ -785,7 +913,7 @@ async function trySync(){
   updateSyncPill();
   // pull fresh data after push completes
   if(state.pendingOps.length===0) await pullAll();
-  renderDash();
+  renderDash({auto:true});
 }
  
 // ============================================================
@@ -850,6 +978,7 @@ function addEntry(e){
   e.edit_history = [];
   e.device_id = DEVICE_ID;
   state.entries.unshift(e);
+  applyBowserDelta(null, e);
   persist();
   queueOp({table:'entries', action:'upsert', data:e});
 }
@@ -869,6 +998,7 @@ function updateEntry(id, patch, editor){
   }
   const next = {...prev, ...patch, edited_at:new Date().toISOString(), edit_count:(prev.edit_count||0)+1, edit_history:history};
   state.entries[i] = next;
+  applyBowserDelta(prev, next);
   persist();
   queueOp({table:'entries', action:'upsert', data:next});
 }
@@ -883,8 +1013,23 @@ function updateSetting(key, value){
 // ============================================================
 // DASHBOARD RENDERING
 // ============================================================
-function renderDash(){
+// Check if any input/select/textarea on the visible page is focused — if so,
+// auto-renders (timer-driven) skip to avoid wiping user's in-progress form.
+function isPageInputFocused(){
+  const ae = document.activeElement;
+  if(!ae || !['INPUT','SELECT','TEXTAREA'].includes(ae.tagName)) return false;
+  const pages = $('#pages');
+  return !!(pages && pages.contains(ae));
+}
+ 
+function renderDash(opts){
+  opts = opts || {};
   if(!state.user) return;
+  // Auto-renders skip if user is in middle of typing on a form input
+  if(opts.auto && isPageInputFocused()){
+    updateSyncPill();
+    return;
+  }
   $('#who-name').textContent = state.user.name;
   $('#who-role').textContent = state.user.role === 'owner' ? 'Owner · Full access' : 'Diesel Manager';
  
@@ -950,9 +1095,88 @@ function renderOverview(page){
       <div class="kpi"><div class="lbl">Total entries</div><div class="val">${state.entries.length}</div><div class="sub">${totalLiters.toFixed(0)} L all time</div></div>
       <div class="kpi"><div class="lbl">Active managers</div><div class="val">${activeMgrs} / 10</div><div class="sub">${state.vehicles.filter(v=>v.active!==false).length} vehicles</div></div>
     </div>
+ 
+    <div class="section" style="margin-top:14px">
+      <div class="section-h"><h3>Bowser Stock</h3><span class="sub">Live · auto-deducts on each issue</span></div>
+      <div class="grid grid-2">
+        ${renderBowserCard('t1', true)}
+        ${renderBowserCard('t2', true)}
+      </div>
+    </div>
+ 
     <div class="section" style="margin-top:14px">
       <div class="section-h"><h3>Latest 10 entries</h3><span class="sub">Live across all managers</span></div>
       ${renderEntriesTable(state.entries.slice(0,10), {showManager:true})}
+    </div>
+  `;
+}
+ 
+function renderBowserCard(tank, withRefill){
+  const stock = getBowserStock(tank);
+  const cap = getBowserCapacity(tank);
+  const pct = cap > 0 ? Math.min(100, (stock/cap)*100) : 0;
+  const color = pct < 20 ? 'var(--danger)' : pct < 50 ? 'var(--warn)' : 'var(--success)';
+  return `
+    <div class="bowser-card">
+      <div class="bowser-h">
+        <div class="bn">Bowser ${tank.toUpperCase()}</div>
+        <div class="bv"><b>${stock.toFixed(1)}</b> / ${cap.toFixed(0)} L</div>
+      </div>
+      <div class="bowser-bar"><div class="bowser-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="bowser-meta">
+        <span>${pct.toFixed(0)}% full</span>
+        ${withRefill?`<button class="refill-btn" onclick="refillBowserModal('${tank}')">+ Refill</button>`:''}
+      </div>
+    </div>
+  `;
+}
+ 
+window.refillBowserModal = function(tank){
+  const stock = getBowserStock(tank);
+  const cap = getBowserCapacity(tank);
+  const room = Math.max(0, cap - stock);
+  openModal(`Refill Bowser ${tank.toUpperCase()}`, `
+    <div style="background:var(--surface);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">
+      Current: <b>${stock.toFixed(1)} L</b> / ${cap.toFixed(0)} L<br>
+      Room available: <b>${room.toFixed(1)} L</b>
+    </div>
+    <div class="form-row">
+      <label>Liters to add</label>
+      <input type="number" step="0.1" id="rf-liters" placeholder="e.g. 500" inputmode="decimal" autofocus>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn small ghost" onclick="document.getElementById('rf-liters').value='${room.toFixed(1)}'">Fill to Capacity</button>
+      <button class="btn small ghost" onclick="document.getElementById('rf-liters').value='500'">+500 L</button>
+      <button class="btn small ghost" onclick="document.getElementById('rf-liters').value='1000'">+1000 L</button>
+    </div>
+    <button class="btn" style="width:100%" onclick="confirmRefill('${tank}')">Confirm Refill</button>
+  `);
+};
+window.confirmRefill = function(tank){
+  const liters = parseFloat($('#rf-liters').value);
+  if(!liters || liters <= 0){ toast('Enter valid liters','err'); return; }
+  const stock = getBowserStock(tank);
+  const cap = getBowserCapacity(tank);
+  const newStock = Math.min(cap, stock + liters);
+  updateSetting('bowser_'+tank+'_stock', newStock);
+  closeModal(); renderDash();
+  toast('Bowser '+tank.toUpperCase()+' refilled — now '+newStock.toFixed(1)+' L','ok');
+};
+ 
+// Inline stock banner shown above source pills for managers
+function renderBowserBanner(){
+  function tier(stock, cap){
+    const pct = cap > 0 ? (stock/cap)*100 : 0;
+    if(pct < 20) return 'low';
+    if(pct < 50) return 'mid';
+    return 'ok';
+  }
+  const s1 = getBowserStock('t1'), c1 = getBowserCapacity('t1');
+  const s2 = getBowserStock('t2'), c2 = getBowserCapacity('t2');
+  return `
+    <div class="bowser-banner">
+      <div class="b-item"><span class="lbl">Bowser T1</span><span class="val ${tier(s1,c1)}">${s1.toFixed(1)} L</span></div>
+      <div class="b-item"><span class="lbl">Bowser T2</span><span class="val ${tier(s2,c2)}">${s2.toFixed(1)} L</span></div>
     </div>
   `;
 }
@@ -965,7 +1189,7 @@ function renderEntriesTable(entries, opts={}){
   const cfHeads = state.customFields.map(f=>`<th>${escapeHtml(f.field_label)}</th>`).join('');
   const rows = entries.map(e => {
     const veh = state.vehicles.find(v=>v.id===e.vehicle_id);
-    const vehName = veh ? veh.name : (e.vehicle_name||'—');
+    const vehDisplay = veh ? (veh.reg_no || veh.name) : (e.vehicle_name || '—');
     const src = e.source==='other' ? (e.source_custom||'Other')
               : e.source==='bowser_t1' ? 'Bowser T1'
               : e.source==='bowser_t2' ? 'Bowser T2' : (e.source||'—');
@@ -977,7 +1201,7 @@ function renderEntriesTable(entries, opts={}){
     return `<tr>
       <td>${fmtDT(e.fill_time||e.created_at)}</td>
       ${showMgr?`<td>${escapeHtml(e.manager_name||'—')}</td>`:''}
-      <td><b>${escapeHtml(vehName)}</b></td>
+      <td><b>${escapeHtml(vehDisplay)}</b></td>
       <td>${e.hmr??'—'}</td>
       <td><b>${(+e.quantity||0).toFixed(1)}</b> L</td>
       <td>${escapeHtml(src)}</td>
@@ -1000,34 +1224,78 @@ function renderAllEntries(page){
     <div class="section">
       <div class="section-h">
         <h3>All Fuel Entries</h3>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="filter-search" placeholder="Search vehicle / manager…" style="padding:6px 10px;border:1px solid var(--border-dark);border-radius:6px;font-size:12px;width:180px">
-          <select id="filter-mgr" style="padding:6px 10px;border:1px solid var(--border-dark);border-radius:6px;font-size:12px">
+        <span class="sub" id="filter-count"></span>
+      </div>
+      <div class="grid grid-3" style="margin-bottom:10px">
+        <div class="form-row" style="margin:0">
+          <label>From date</label>
+          <input type="date" id="filter-from">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>To date</label>
+          <input type="date" id="filter-to">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Manager</label>
+          <select id="filter-mgr">
             <option value="">All managers</option>
             ${state.managers.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}
           </select>
         </div>
       </div>
+      <div class="form-row" style="margin-bottom:10px">
+        <input type="text" id="filter-search" placeholder="Search by reg no, vehicle, manager, source…" style="width:100%;padding:8px 10px;border:1px solid var(--border-dark);border-radius:var(--radius-sm);font-size:13px">
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn small ghost" onclick="setDateFilterPreset('today')">Today</button>
+        <button class="btn small ghost" onclick="setDateFilterPreset('week')">Last 7 days</button>
+        <button class="btn small ghost" onclick="setDateFilterPreset('month')">Last 30 days</button>
+        <button class="btn small ghost" onclick="setDateFilterPreset('clear')">Clear dates</button>
+      </div>
       <div id="entries-table">${renderEntriesTable(state.entries, {showManager:true})}</div>
     </div>
   `;
-  const refilter = ()=>{
+ 
+  window._refilterAllEntries = function(){
     const q = $('#filter-search').value.trim().toLowerCase();
     const mid = $('#filter-mgr').value;
-    let list = state.entries;
-    if(mid) list = list.filter(e=>String(e.manager_id)===String(mid));
-    if(q){
-      list = list.filter(e=>{
+    const fromV = $('#filter-from').value;
+    const toV = $('#filter-to').value;
+    const fromTs = fromV ? new Date(fromV+'T00:00:00').getTime() : 0;
+    const toTs   = toV   ? new Date(toV+'T23:59:59').getTime()   : Number.MAX_SAFE_INTEGER;
+    let list = state.entries.filter(e => {
+      const t = new Date(e.fill_time||e.created_at).getTime();
+      if(t < fromTs || t > toTs) return false;
+      if(mid && String(e.manager_id) !== String(mid)) return false;
+      if(q){
         const veh = state.vehicles.find(v=>v.id===e.vehicle_id);
-        const s = (veh?veh.name:'') + ' ' + (e.manager_name||'') + ' ' + (e.source_custom||'');
-        return s.toLowerCase().includes(q);
-      });
-    }
+        const s = (veh?(veh.reg_no||'')+' '+(veh.name||''):'') + ' ' + (e.manager_name||'') + ' ' + (e.source_custom||'') + ' ' + (e.vehicle_name||'');
+        if(!s.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    const total = list.reduce((s,e)=>s+(+e.quantity||0), 0);
+    $('#filter-count').textContent = list.length + ' entries · ' + total.toFixed(1) + ' L total';
     $('#entries-table').innerHTML = renderEntriesTable(list, {showManager:true});
   };
-  $('#filter-search').addEventListener('input', refilter);
-  $('#filter-mgr').addEventListener('change', refilter);
+ 
+  ['filter-search','filter-mgr','filter-from','filter-to'].forEach(id=>{
+    const el = $('#'+id); if(!el) return;
+    el.addEventListener(id==='filter-search'?'input':'change', window._refilterAllEntries);
+  });
+  window._refilterAllEntries();
 }
+window.setDateFilterPreset = function(p){
+  const fromEl = $('#filter-from'), toEl = $('#filter-to');
+  if(!fromEl || !toEl) return;
+  const today = new Date();
+  const fmt = d => d.toISOString().slice(0,10);
+  if(p==='today'){ fromEl.value = fmt(today); toEl.value = fmt(today); }
+  else if(p==='week'){ const d = new Date(Date.now()-7*86400000); fromEl.value = fmt(d); toEl.value = fmt(today); }
+  else if(p==='month'){ const d = new Date(Date.now()-30*86400000); fromEl.value = fmt(d); toEl.value = fmt(today); }
+  else if(p==='clear'){ fromEl.value=''; toEl.value=''; }
+  if(window._refilterAllEntries) window._refilterAllEntries();
+};
  
 // ---------- OWNER: VEHICLES ----------
 function renderVehicles(page){
@@ -1040,12 +1308,12 @@ function renderVehicles(page){
       ${state.vehicles.length===0
         ? '<div class="empty"><div class="em">🚜</div>No vehicles yet. Add one to enable diesel entries.</div>'
         : `<div class="table-wrap"><table>
-            <thead><tr><th>Name</th><th>Type</th><th>Reg No</th><th>Branch</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Reg No</th><th>Type</th><th>Name</th><th>Branch</th><th>Status</th><th></th></tr></thead>
             <tbody>${state.vehicles.map(v=>`
               <tr>
-                <td><b>${escapeHtml(v.name)}</b></td>
+                <td><b>${escapeHtml(v.reg_no||'—')}</b></td>
                 <td><span class="badge info">${v.type||'vehicle'}</span></td>
-                <td>${escapeHtml(v.reg_no||'—')}</td>
+                <td>${escapeHtml(v.name && v.name!==v.reg_no ? v.name : '—')}</td>
                 <td>${escapeHtml(v.branch||'—')}</td>
                 <td>${v.active===false?'<span class="badge off">Inactive</span>':'<span class="badge ok">Active</span>'}</td>
                 <td><div class="row-actions">
@@ -1060,48 +1328,55 @@ function renderVehicles(page){
  
 window.addVehicleModal = function(){
   openModal('Add Vehicle / Machine', `
-    <div class="form-row"><label>Name *</label><input id="vh-name" placeholder="e.g. JCB-3CX-12 or Tipper-MP21AB1234"></div>
+    <div class="form-row"><label>Registration / Asset Number *</label><input id="vh-reg" placeholder="e.g. MP21AB1234 or JCB-3CX-12" autocomplete="off"></div>
     <div class="form-row"><label>Type</label>
       <select id="vh-type"><option value="vehicle">Vehicle</option><option value="machine">Machine</option></select>
     </div>
-    <div class="form-row"><label>Reg / Asset No</label><input id="vh-reg"></div>
+    <div class="form-row"><label>Name / Nickname <span style="color:var(--text-soft);text-transform:none;font-weight:400">(optional)</span></label><input id="vh-name" placeholder="e.g. Tipper Red, Big JCB"></div>
     <div class="form-row"><label>Branch</label><input id="vh-branch" placeholder="SHAHPURA / BANDOL / etc."></div>
     <button class="btn" style="width:100%" onclick="saveVehicle()">Save</button>
   `);
 };
 window.saveVehicle = function(){
+  const reg = $('#vh-reg').value.trim();
+  if(!reg) { toast('Registration number required','err'); return; }
   const name = $('#vh-name').value.trim();
-  if(!name) { toast('Name required','err'); return; }
   addVehicle({
-    name, type:$('#vh-type').value, reg_no:$('#vh-reg').value.trim(),
-    branch:$('#vh-branch').value.trim(), active:true
+    name: name || reg,           // fallback so DB NOT NULL constraint passes
+    type: $('#vh-type').value,
+    reg_no: reg,
+    branch: $('#vh-branch').value.trim(),
+    active: true
   });
   closeModal(); renderDash(); toast('Vehicle added','ok');
 };
 window.editVehicleModal = function(id){
   const v = state.vehicles.find(x=>x.id===id); if(!v) return;
   openModal('Edit Vehicle', `
-    <div class="form-row"><label>Name</label><input id="vh-name" value="${escapeHtml(v.name)}"></div>
+    <div class="form-row"><label>Registration / Asset Number *</label><input id="vh-reg" value="${escapeHtml(v.reg_no||'')}"></div>
     <div class="form-row"><label>Type</label>
       <select id="vh-type"><option value="vehicle" ${v.type==='vehicle'?'selected':''}>Vehicle</option><option value="machine" ${v.type==='machine'?'selected':''}>Machine</option></select>
     </div>
-    <div class="form-row"><label>Reg / Asset No</label><input id="vh-reg" value="${escapeHtml(v.reg_no||'')}"></div>
+    <div class="form-row"><label>Name / Nickname <span style="color:var(--text-soft);text-transform:none;font-weight:400">(optional)</span></label><input id="vh-name" value="${escapeHtml(v.name===v.reg_no?'':v.name||'')}"></div>
     <div class="form-row"><label>Branch</label><input id="vh-branch" value="${escapeHtml(v.branch||'')}"></div>
     <div class="form-row"><label><input type="checkbox" id="vh-active" ${v.active!==false?'checked':''}> Active</label></div>
     <button class="btn" style="width:100%" onclick="saveEditVehicle('${id}')">Save</button>
   `);
 };
 window.saveEditVehicle = function(id){
+  const reg = $('#vh-reg').value.trim();
+  if(!reg) { toast('Registration number required','err'); return; }
+  const name = $('#vh-name').value.trim();
   updateVehicle(id, {
-    name:$('#vh-name').value.trim(), type:$('#vh-type').value,
-    reg_no:$('#vh-reg').value.trim(), branch:$('#vh-branch').value.trim(),
+    name: name || reg, type:$('#vh-type').value,
+    reg_no: reg, branch:$('#vh-branch').value.trim(),
     active:$('#vh-active').checked
   });
   closeModal(); renderDash(); toast('Updated','ok');
 };
 window.confirmDeleteVehicle = function(id){
   const v = state.vehicles.find(x=>x.id===id); if(!v) return;
-  if(confirm(`Delete vehicle "${v.name}"? Existing entries will keep their vehicle name.`)){
+  if(confirm(`Delete vehicle "${v.reg_no||v.name}"? Existing entries will keep their snapshot.`)){
     deleteVehicle(id); renderDash(); toast('Deleted','ok');
   }
 };
@@ -1115,7 +1390,7 @@ function renderManagers(page){
         <span class="sub">${state.managers.filter(m=>m.active).length} active · only active managers can login</span>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>Name</th><th>Password</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>PIN</th><th>Status</th><th></th></tr></thead>
         <tbody>${state.managers.map(m=>`
           <tr>
             <td><b>${m.id}</b></td>
@@ -1136,7 +1411,7 @@ window.editManagerModal = function(id){
   const m = state.managers.find(x=>x.id===id); if(!m) return;
   openModal(`Edit Manager #${id}`, `
     <div class="form-row"><label>Name</label><input id="mg-name" value="${escapeHtml(m.name)}"></div>
-    <div class="form-row"><label>Password</label><input id="mg-pass" value="${escapeHtml(m.password||'')}"></div>
+    <div class="form-row"><label>PIN (4–8 digits)</label><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" id="mg-pass" value="${escapeHtml(m.password||'')}"></div>
     <div class="form-row"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)">
       <input type="checkbox" id="mg-active" ${m.active?'checked':''} style="width:auto;transform:scale(1.2)"> Active (can login)
     </label></div>
@@ -1144,9 +1419,11 @@ window.editManagerModal = function(id){
   `);
 };
 window.saveManager = function(id){
+  const pin = $('#mg-pass').value.trim();
+  if(pin && !/^\d{4,8}$/.test(pin)){ toast('PIN must be 4–8 digits','err'); return; }
   updateManager(id, {
     name:$('#mg-name').value.trim()||('Manager '+id),
-    password:$('#mg-pass').value||'1234',
+    password: pin || '1234',
     active:$('#mg-active').checked,
   });
   closeModal(); renderDash(); toast('Manager updated','ok');
@@ -1273,9 +1550,9 @@ window.doExport = function(){
     const row = {
       'Date/Time':fmtDT(e.fill_time||e.created_at),
       'Manager':e.manager_name||'',
-      'Vehicle':veh?veh.name:(e.vehicle_name||''),
+      'Reg / Asset No':veh?(veh.reg_no||''):(e.vehicle_name||''),
       'Vehicle Type':veh?veh.type:'',
-      'Reg/Asset':veh?(veh.reg_no||''):'',
+      'Name / Nickname':veh?(veh.name && veh.name!==veh.reg_no ? veh.name : ''):'',
       'Branch':veh?(veh.branch||''):'',
       'HMR':e.hmr||'',
       'Quantity (L)':+e.quantity||0,
@@ -1294,9 +1571,10 @@ window.doExport = function(){
   list.forEach(e=>{
     (e.edit_history||[]).forEach(h=>{
       Object.entries(h.diff||{}).forEach(([field,d])=>{
+        const v = state.vehicles.find(x=>x.id===e.vehicle_id);
         editRows.push({
           'When':fmtDT(h.at), 'By':h.by, 'Entry ID':e.id,
-          'Vehicle':(state.vehicles.find(v=>v.id===e.vehicle_id)||{}).name||e.vehicle_name||'',
+          'Vehicle':(v?(v.reg_no||v.name):e.vehicle_name)||'',
           'Field':field, 'Old Value':JSON.stringify(d.old), 'New Value':JSON.stringify(d.new),
         });
       });
@@ -1323,7 +1601,7 @@ function renderAudit(page){
             const hist = (e.edit_history||[]).slice().reverse();
             return `<div style="border-bottom:1px solid var(--surface-2);padding:10px 0">
               <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
-                <b>${escapeHtml(veh?veh.name:e.vehicle_name||'—')}</b>
+                <b>${escapeHtml(veh?(veh.reg_no||veh.name):e.vehicle_name||'—')}</b>
                 <span class="entry-meta">${fmtDT(e.fill_time||e.created_at)} · by <b>${escapeHtml(e.manager_name||'—')}</b> · ${e.edit_count} edit(s)</span>
               </div>
               ${hist.map(h=>`
@@ -1363,32 +1641,37 @@ function renderSettings(page){
     </div>
  
     <div class="section">
-      <div class="section-h"><h3>Owner Password</h3></div>
-      <div class="form-row"><label>New owner password</label>
-        <input type="password" id="set-owner-pwd" placeholder="Leave blank to keep current">
+      <div class="section-h"><h3>Owner PIN</h3></div>
+      <div class="form-row"><label>New owner PIN (4–8 digits)</label>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" id="set-owner-pwd" placeholder="Leave blank to keep current">
       </div>
-      <div class="form-row"><label>Confirm new password</label>
-        <input type="password" id="set-owner-pwd2" placeholder="">
+      <div class="form-row"><label>Confirm new PIN</label>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" id="set-owner-pwd2" placeholder="">
       </div>
-      <button class="btn small" onclick="saveOwnerPwd()">Update Password</button>
+      <button class="btn small" onclick="saveOwnerPwd()">Update PIN</button>
     </div>
  
     <div class="section">
       <div class="section-h"><h3>Sync & Storage</h3></div>
-      <div style="font-size:13px;line-height:1.7">
-        Backend: <b>${sb?'Supabase connected':'Local only (paste keys in CONFIG to enable cloud sync)'}</b><br>
-        Device ID: <code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:11px">${DEVICE_ID}</code><br>
-        Pending sync ops: <b>${state.pendingOps.length}</b>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${sb
+        ? `<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#dcfce7;color:#166534;border-radius:999px;font-weight:600;font-size:13px">
+            <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span>
+            Connected to server
+          </div>`
+        : `<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fee2e2;color:#991b1b;border-radius:999px;font-weight:600;font-size:13px">
+            <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block"></span>
+            Not connected — local only
+          </div>`}
+      ${state.pendingOps.length > 0 ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">Pending sync: <b>${state.pendingOps.length}</b> operation${state.pendingOps.length===1?'':'s'}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn small ghost" onclick="manualSync()">🔄 Sync now</button>
         <button class="btn small ghost" onclick="manualPull()">⬇ Pull from server</button>
         <button class="btn small danger" onclick="wipeLocalCache()">🗑 Wipe local cache</button>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
-        💡 If sync is stuck or you see UUID errors, tap <b>Wipe local cache</b> — it erases this device's local data and queued operations, then reloads fresh from server. Server data stays safe.
+        💡 Wipe button erases local data on this device only — server data is safe.
       </div>
-      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v1.3</div>
+      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v1.6</div>
     </div>
   `;
   $('#set-calc').addEventListener('change', e=>{
@@ -1403,12 +1686,13 @@ window.saveSecret = function(){
   toast('Secret code updated','ok');
 };
 window.saveOwnerPwd = function(){
-  const p1 = $('#set-owner-pwd').value, p2 = $('#set-owner-pwd2').value;
-  if(!p1){ toast('Enter new password','err'); return; }
-  if(p1!==p2){ toast('Passwords do not match','err'); return; }
+  const p1 = $('#set-owner-pwd').value.trim(), p2 = $('#set-owner-pwd2').value.trim();
+  if(!p1){ toast('Enter new PIN','err'); return; }
+  if(!/^\d{4,8}$/.test(p1)){ toast('PIN must be 4–8 digits','err'); return; }
+  if(p1!==p2){ toast('PINs do not match','err'); return; }
   updateSetting('owner_password', p1);
   $('#set-owner-pwd').value=''; $('#set-owner-pwd2').value='';
-  toast('Password updated','ok');
+  toast('PIN updated','ok');
 };
 window.manualSync = async function(){ await trySync(); toast('Sync done','ok'); renderDash(); };
 window.manualPull = async function(){ await pullAll(); toast('Pulled from server','ok'); renderDash(); };
@@ -1434,7 +1718,7 @@ function renderNewEntry(page){
  
       <div class="form-row sd-wrap">
         <label>Vehicle / Machine *</label>
-        <input type="text" id="ne-vehicle" placeholder="${activeVehicles.length===0 ? 'No vehicles yet — ask owner to add' : 'Search by name, reg no, or branch…'}" autocomplete="off" ${activeVehicles.length===0?'disabled':''}>
+        <input type="text" id="ne-vehicle" placeholder="${activeVehicles.length===0 ? 'No vehicles yet — ask owner to add' : 'Search by reg number, type, or name…'}" autocomplete="off" ${activeVehicles.length===0?'disabled':''}>
         <input type="hidden" id="ne-vehicle-id">
         <div id="ne-vehicle-results" class="sd-results"></div>
         <div class="hint">${activeVehicles.length} vehicle${activeVehicles.length===1?'':'s'} available</div>
@@ -1451,8 +1735,9 @@ function renderNewEntry(page){
       </div>
  
       <div class="form-row">
-        <label>Source *</label>
-        <div class="source-pills">
+        <label>Source * <span style="color:var(--text-soft);text-transform:none;font-weight:400;letter-spacing:0">— live stock</span></label>
+        ${renderBowserBanner()}
+        <div class="source-pills" style="margin-top:8px">
           <button type="button" class="source-pill active" data-src="bowser_t1">Bowser T1</button>
           <button type="button" class="source-pill" data-src="bowser_t2">Bowser T2</button>
           <button type="button" class="source-pill" data-src="other">Other</button>
@@ -1471,7 +1756,8 @@ function renderNewEntry(page){
     </div>
   `;
  
-  wireVehicleSearch('ne-vehicle', 'ne-vehicle-id', 'ne-vehicle-results', activeVehicles, null);
+  wireVehicleSearch('ne-vehicle', 'ne-vehicle-id', 'ne-vehicle-results',
+    () => state.vehicles.filter(v=>v.active!==false), null);
  
   // source pill toggle
   page.querySelectorAll('.source-pill').forEach(p=>p.addEventListener('click', ()=>{
@@ -1481,14 +1767,18 @@ function renderNewEntry(page){
   }));
 }
  
-// Reusable searchable vehicle picker
-function wireVehicleSearch(inputId, hiddenId, resultsId, vehicles, preselectId){
+// Reusable searchable vehicle picker — `vehiclesOrGetter` may be an array OR a
+// function returning a fresh array (so the dropdown stays current even when the
+// form itself is not re-rendered).
+function wireVehicleSearch(inputId, hiddenId, resultsId, vehiclesOrGetter, preselectId){
   const inp = document.getElementById(inputId);
   const hid = document.getElementById(hiddenId);
   const res = document.getElementById(resultsId);
   if(!inp || !hid || !res) return;
+  const getList = () => typeof vehiclesOrGetter === 'function' ? vehiclesOrGetter() : vehiclesOrGetter;
  
   function render(q){
+    const vehicles = getList();
     const query = (q||'').toLowerCase().trim();
     let list = vehicles;
     if(query){
@@ -1502,10 +1792,10 @@ function wireVehicleSearch(inputId, hiddenId, resultsId, vehicles, preselectId){
     } else {
       res.innerHTML = list.slice(0,30).map(v=>`
         <div class="sd-item" data-id="${escapeHtml(v.id)}">
-          <div class="sd-name">${escapeHtml(v.name)}</div>
+          <div class="sd-name">${escapeHtml(v.reg_no || v.name || '—')}</div>
           <div class="sd-meta">
             <span class="sd-pill">${escapeHtml(v.type||'vehicle')}</span>
-            ${v.reg_no?'<span class="sd-pill">'+escapeHtml(v.reg_no)+'</span>':''}
+            ${v.name && v.name!==v.reg_no ? '<span class="sd-pill">'+escapeHtml(v.name)+'</span>' : ''}
             ${v.branch?'<span class="sd-pill">'+escapeHtml(v.branch)+'</span>':''}
           </div>
         </div>
@@ -1515,14 +1805,14 @@ function wireVehicleSearch(inputId, hiddenId, resultsId, vehicles, preselectId){
   }
  
   function selectVehicle(v){
-    inp.value = v.name + (v.reg_no?' ('+v.reg_no+')':'');
+    inp.value = (v.reg_no || v.name) + (v.name && v.name!==v.reg_no ? ' — '+v.name : '');
     hid.value = v.id;
     inp.classList.add('sd-selected');
     res.classList.remove('show');
   }
  
   if(preselectId){
-    const v = vehicles.find(x=>x.id===preselectId);
+    const v = getList().find(x=>x.id===preselectId);
     if(v) selectVehicle(v);
   }
  
@@ -1541,13 +1831,13 @@ function wireVehicleSearch(inputId, hiddenId, resultsId, vehicles, preselectId){
     const item = e.target.closest('.sd-item');
     if(!item) return;
     e.preventDefault();
-    const v = vehicles.find(x=>x.id===item.dataset.id);
+    const v = getList().find(x=>x.id===item.dataset.id);
     if(v) selectVehicle(v);
   });
   res.addEventListener('touchstart', e=>{
     const item = e.target.closest('.sd-item');
     if(!item) return;
-    const v = vehicles.find(x=>x.id===item.dataset.id);
+    const v = getList().find(x=>x.id===item.dataset.id);
     if(v) selectVehicle(v);
   });
 }
@@ -1567,6 +1857,16 @@ window.saveNewEntry = function(){
   const srcCustom = src==='other' ? $('#ne-src-custom').value.trim() : '';
   if(src==='other' && !srcCustom){ toast('Specify "Other" source','err'); return; }
  
+  // Bowser stock validation
+  if(src === 'bowser_t1' || src === 'bowser_t2'){
+    const tank = src.replace('bowser_','');
+    const avail = getBowserStock(tank);
+    if(qty > avail){
+      toast('Insufficient fuel in '+tank.toUpperCase()+' — only '+avail.toFixed(1)+' L available','err');
+      return;
+    }
+  }
+ 
   const custom_data = {};
   for(const f of state.customFields){
     const el = $('#ne-cf-'+f.id);
@@ -1577,7 +1877,7 @@ window.saveNewEntry = function(){
  
   addEntry({
     manager_id: state.user.id, manager_name: state.user.name,
-    vehicle_id: veh.id, vehicle_name: veh.name,
+    vehicle_id: veh.id, vehicle_name: veh.reg_no || veh.name,
     hmr, quantity:qty, fill_time:new Date(time).toISOString(),
     source: src, source_custom: srcCustom, custom_data,
   });
@@ -1600,8 +1900,17 @@ function renderMyEntries(page){
       <div class="kpi"><div class="lbl">Total entries</div><div class="val">${mine.length}</div><div class="sub">All time</div></div>
       <div class="kpi"><div class="lbl">Total volume</div><div class="val">${totalLiters.toFixed(0)} L</div><div class="sub">Issued by you</div></div>
     </div>
+ 
     <div class="section" style="margin-top:14px">
-      <div class="section-h"><h3>My Entries</h3><span class="sub">Tap edit to revise — owner sees all changes</span></div>
+      <div class="section-h"><h3>Bowser Stock</h3><span class="sub">Auto-updates after every issue</span></div>
+      <div class="grid grid-2">
+        ${renderBowserCard('t1', false)}
+        ${renderBowserCard('t2', false)}
+      </div>
+    </div>
+ 
+    <div class="section" style="margin-top:14px">
+      <div class="section-h"><h3>My Entries</h3><span class="sub">Tap edit to revise</span></div>
       ${renderEntriesTable(mine, {showManager:false, canEdit:true})}
     </div>
   `;
@@ -1616,7 +1925,7 @@ window.editEntryModal = function(id){
  
   openModal('Edit Entry', `
     <div class="form-row sd-wrap"><label>Vehicle</label>
-      <input type="text" id="ee-vehicle" placeholder="Search by name, reg no, or branch…" autocomplete="off">
+      <input type="text" id="ee-vehicle" placeholder="Search by reg number, type, or name…" autocomplete="off">
       <input type="hidden" id="ee-vehicle-id" value="${escapeHtml(e.vehicle_id||'')}">
       <div id="ee-vehicle-results" class="sd-results"></div>
     </div>
@@ -1639,9 +1948,6 @@ window.editEntryModal = function(id){
         <input type="${f.field_type==='number'?'number':f.field_type==='date'?'date':'text'}" id="ee-cf-${f.id}" value="${escapeHtml((e.custom_data||{})[f.field_key]||'')}">
       </div>
     `).join('')}
-    <div style="background:#fef3c7;border-radius:6px;padding:8px 10px;font-size:12px;color:#92400e;margin:10px 0">
-      ⚠ Owner will see every change you make here, with timestamp.
-    </div>
     <button class="btn" style="width:100%" onclick="saveEditEntry('${id}')">Save Changes</button>
   `);
  
@@ -1661,6 +1967,19 @@ window.saveEditEntry = function(id){
   if(!veh){ toast('Tap to select a vehicle from the list','err'); return; }
   const src = $('#ee-src').value;
   const srcCustom = src==='other' ? $('#ee-src-custom').value.trim() : '';
+  const newQty = parseFloat($('#ee-qty').value) || 0;
+ 
+  // Bowser stock validation — account for this entry's existing contribution
+  if(src === 'bowser_t1' || src === 'bowser_t2'){
+    const tank = src.replace('bowser_','');
+    let avail = getBowserStock(tank);
+    // If old entry was using same tank, that quantity will be "returned" first
+    if(e.source === src) avail += (+e.quantity || 0);
+    if(newQty > avail){
+      toast('Insufficient fuel in '+tank.toUpperCase()+' — only '+avail.toFixed(1)+' L available (incl. this entry)','err');
+      return;
+    }
+  }
  
   const custom_data = {...(e.custom_data||{})};
   state.customFields.forEach(f=>{
@@ -1669,7 +1988,7 @@ window.saveEditEntry = function(id){
   });
  
   updateEntry(id, {
-    vehicle_id:veh.id, vehicle_name:veh.name,
+    vehicle_id:veh.id, vehicle_name: veh.reg_no || veh.name,
     hmr:parseFloat($('#ee-hmr').value)||null,
     quantity:parseFloat($('#ee-qty').value)||null,
     fill_time:new Date($('#ee-time').value).toISOString(),
@@ -1694,11 +2013,11 @@ updateSyncPill();
   if(sb){
     await pullAll();
     bootScreen();              // re-evaluate calc/login after settings load
-    if(state.user) renderDash();
+    if(state.user) renderDash({auto:true});
   }
 })();
 setInterval(()=>{ if(state.online) trySync(); }, 15000);
-setInterval(()=>{ if(state.online && state.user) pullAll().then(()=>{ if(state.user) renderDash(); }); }, 30000);
+setInterval(()=>{ if(state.online && state.user) pullAll().then(()=>{ if(state.user) renderDash({auto:true}); }); }, 30000);
 </script>
 </body>
 </html>
