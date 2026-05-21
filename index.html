@@ -443,7 +443,42 @@ function loadPersisted(){
 // ============================================================
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
-const uuid = () => 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const uuid = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  // RFC4122 v4 fallback
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+};
+// Migrate any non-UUID IDs in persisted state (from earlier buggy versions)
+function migrateIdsToUuid(){
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const idMap = {};
+  let migrated = 0;
+  ['vehicles','customFields','entries'].forEach(key => {
+    state[key].forEach(item => {
+      if(!item.id || !uuidRe.test(item.id)){
+        const oldId = item.id;
+        item.id = uuid();
+        if(oldId) idMap[oldId] = item.id;
+        migrated++;
+      }
+    });
+  });
+  // cascade fix: entries → vehicle_id may reference old IDs
+  state.entries.forEach(e => {
+    if(e.vehicle_id && idMap[e.vehicle_id]) e.vehicle_id = idMap[e.vehicle_id];
+  });
+  if(migrated > 0){
+    state.pendingOps = [];
+    state.vehicles.forEach(v => state.pendingOps.push({table:'vehicles', action:'upsert', data:v, ts:Date.now(), id:uuid()}));
+    state.customFields.forEach(f => state.pendingOps.push({table:'custom_fields', action:'upsert', data:f, ts:Date.now(), id:uuid()}));
+    state.entries.forEach(e => state.pendingOps.push({table:'entries', action:'upsert', data:e, ts:Date.now(), id:uuid()}));
+    persist();
+    console.log('[TASR] Migrated '+migrated+' IDs to UUID; re-queued '+state.pendingOps.length+' items for sync');
+  }
+}
 const fmtDT = ts => {
   if(!ts) return '—';
   const d = new Date(ts);
@@ -692,7 +727,11 @@ async function trySync(){
       else if(action==='insert') res = await sb.from(table).insert(data);
       else if(action==='update') res = await sb.from(table).update(data).match(match);
       else if(action==='delete') res = await sb.from(table).delete().match(match);
-      if(res && res.error){ console.warn('sync error', op, res.error); break; }
+      if(res && res.error){
+        console.warn('sync error', op, res.error);
+        toast('Sync error: '+(res.error.message||'check console'), 'err');
+        break;
+      }
       state.pendingOps = state.pendingOps.filter(p=>p.id!==op.id);
       persist();
     }catch(e){ console.warn('sync exception', e); break; }
@@ -1514,6 +1553,7 @@ window.saveEditEntry = function(id){
 // ============================================================
 loadPersisted();
 ensureManagerSlots();
+migrateIdsToUuid();
 calcRender();
 bootScreen();
 updateSyncPill();
