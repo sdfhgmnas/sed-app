@@ -2,8 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Calculator</title>
+ 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0891b2">
+<meta name="description" content="TASR BharatNext Fuel Manager">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TB Fuel">
+<meta name="mobile-web-app-capable" content="yes">
  
 <!--
   ============================================================
@@ -111,13 +123,20 @@ html{background:#000}
  
 .sync-pill{
   display:inline-flex;align-items:center;gap:5px;
-  padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;
+  padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;
 }
-.sync-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sync-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+@keyframes tasrBlink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.85)} }
+.sync-live{background:#dcfce7;color:#15803d}
+.sync-live .dot{animation:tasrBlink 1.3s infinite}
+.sync-pending{background:#fef3c7;color:#a16207}
+.sync-pending .dot{animation:tasrBlink 1.0s infinite}
+.sync-disconnect{background:#fee2e2;color:#b91c1c}
+.sync-disconnect .dot{animation:none}
+/* Legacy class aliases kept for backward compatibility */
 .sync-online{background:#dcfce7;color:#15803d}
-.sync-offline{background:#fee2e2;color:#b91c1c}
 .sync-syncing{background:#fef3c7;color:#a16207}
-.sync-pending{background:#e0e7ff;color:#3730a3}
+.sync-offline{background:#fee2e2;color:#b91c1c}
  
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
@@ -133,6 +152,7 @@ html{background:#000}
 .btn.danger:hover{background:#dc2626}
 .btn.success{background:var(--success)}
 .btn.small{padding:5px 10px;font-size:12px}
+.btn.xs{padding:2px 8px;font-size:11px;border-radius:5px}
 .btn.icon{padding:6px 8px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
  
@@ -200,7 +220,36 @@ table tbody tr:hover{background:var(--surface)}
 .kpi .val{font-size:22px;font-weight:700;color:var(--text);margin-top:2px}
 .kpi .sub{font-size:11px;color:var(--text-muted);margin-top:2px}
  
-/* Bowser stock card */
+/* Admin lock button — fixed top-right, accessible from any screen */
+.admin-btn{
+  position:fixed;top:8px;right:8px;z-index:200;
+  width:30px;height:30px;border-radius:8px;
+  background:rgba(15,23,42,.15);color:rgba(255,255,255,.92);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;border:1px solid rgba(255,255,255,.15);
+  backdrop-filter:blur(8px);
+  transition:background .15s,transform .05s;
+}
+.admin-btn:active{transform:scale(.92)}
+.admin-btn:hover{background:rgba(15,23,42,.3)}
+/* When on a light-bg screen, swap colors */
+body.lightbg .admin-btn{
+  background:rgba(255,255,255,.7);color:#0f172a;border-color:var(--border-dark);
+}
+ 
+/* Disabled screen */
+#disabled-screen{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);color:#fff}
+#disabled-screen.active{display:flex}
+.disabled-card{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;padding:36px 28px;max-width:420px;width:100%;text-align:center;
+  backdrop-filter:blur(8px);
+}
+.disabled-card .lock-big{font-size:56px;margin-bottom:14px}
+.disabled-card h2{font-size:22px;font-weight:700;margin-bottom:10px;letter-spacing:-.3px}
+.disabled-card .msg-text{font-size:15px;line-height:1.5;color:rgba(255,255,255,.85);white-space:pre-wrap}
+.disabled-card .footnote{margin-top:24px;font-size:11px;color:rgba(255,255,255,.5)}
 .bowser-card{
   background:#fff;border:1px solid var(--border);border-radius:var(--radius);
   padding:12px;box-shadow:var(--shadow);
@@ -342,6 +391,19 @@ table tbody tr:hover{background:var(--surface)}
 </head>
 <body>
  
+<!-- Admin lock button — fixed top-right, accessible from any screen -->
+<button class="admin-btn" id="admin-btn" title="Administration" onclick="openAdminLogin()">🔒</button>
+ 
+<!-- Disabled screen — shown when admin has disabled the app -->
+<div id="disabled-screen" class="screen">
+  <div class="disabled-card">
+    <div class="lock-big">🔒</div>
+    <h2>Service Unavailable</h2>
+    <p class="msg-text" id="disabled-message-text">Loading…</p>
+    <div class="footnote">Contact your administrator for access</div>
+  </div>
+</div>
+ 
 <!-- ==================== CALCULATOR SCREEN ==================== -->
 <div id="calc-screen" class="screen active">
   <div class="calc">
@@ -381,7 +443,7 @@ table tbody tr:hover{background:var(--surface)}
  
     <div class="role-tabs">
       <button class="role-tab active" data-role="manager">Diesel Manager</button>
-      <button class="role-tab" data-role="owner">Owner</button>
+      <button class="role-tab" data-role="owner">🔒 Admin</button>
     </div>
  
     <div id="login-msg"></div>
@@ -399,7 +461,7 @@ table tbody tr:hover{background:var(--surface)}
  
     <div id="login-owner" style="display:none">
       <div class="form-row">
-        <label>Owner PIN</label>
+        <label>Admin PIN</label>
         <div id="login-owner-pin"></div>
       </div>
     </div>
@@ -411,7 +473,7 @@ table tbody tr:hover{background:var(--surface)}
 <!-- ==================== DASHBOARD SCREEN ==================== -->
 <div id="dash-screen" class="screen">
   <div class="topbar">
-    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v1.9</span></div>
+    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v2.2</span></div>
     <span id="sync-pill" class="sync-pill sync-online"><span class="dot"></span><span id="sync-text">Online</span></span>
     <div class="topbar-spacer"></div>
     <div class="who"><b id="who-name">—</b><span id="who-role">—</span></div>
@@ -437,6 +499,27 @@ table tbody tr:hover{background:var(--surface)}
  
 <script>
 'use strict';
+ 
+// PWA service worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        console.log('[TASR] SW registered, scope:', reg.scope);
+        // Listen for updates
+        reg.addEventListener('updatefound', () => {
+          const w = reg.installing;
+          if(!w) return;
+          w.addEventListener('statechange', () => {
+            if(w.state === 'installed' && navigator.serviceWorker.controller){
+              console.log('[TASR] New version available — refresh to update');
+            }
+          });
+        });
+      })
+      .catch(e => console.warn('[TASR] SW failed:', e));
+  });
+}
  
 // ============================================================
 // CONFIG — paste your Supabase credentials here
@@ -477,6 +560,10 @@ const state = {
     bowser_t1_stock: '3200',
     bowser_t2_capacity: '3200',
     bowser_t2_stock: '3200',
+    admin_app_enabled: 'true',
+    admin_owner_enabled: 'true',
+    admin_disable_message: 'Service temporarily unavailable. Please contact your administrator.',
+    admin_pages_disabled: '',
   },
   pendingOps: [],          // offline queue
   online: navigator.onLine,
@@ -704,14 +791,16 @@ function showScreen(id){
   $$('.screen').forEach(s=>s.classList.remove('active'));
   $('#'+id).classList.add('active');
 }
-function gotoCalc(){ showScreen('calc-screen'); calcState.expr=''; calcState.history=''; calcRender(); }
+function gotoCalc(){ setLightBg(false); showScreen('calc-screen'); calcState.expr=''; calcState.history=''; calcRender(); }
 function gotoLogin(){
+  setLightBg(true);
   showScreen('login-screen');
   $('#login-msg').innerHTML='';
   refreshManagerLoginDropdown();
   setupLoginPinPads();
 }
 function gotoDash(){
+  setLightBg(true);
   showScreen('dash-screen'); renderDash();
   // Force fresh pull on every dashboard entry so manager sees latest vehicles/fields
   if(sb && state.online){
@@ -727,9 +816,157 @@ function refreshManagerLoginDropdown(){
  
 // On boot, decide initial screen: calculator (if disguise on) or login
 function bootScreen(){
+  // Admin kill switch — overrides everything
+  if(state.settings.admin_app_enabled === 'false'){
+    showDisabledScreen();
+    return;
+  }
   const enabled = state.settings.calculator_enabled !== 'false';
   if(enabled){ gotoCalc(); }
   else { gotoLogin(); }
+}
+ 
+// Track body class for admin button contrast styling
+function setLightBg(on){
+  if(on) document.body.classList.add('lightbg');
+  else   document.body.classList.remove('lightbg');
+}
+ 
+// ============================================================
+// ADMIN (super-admin kill switch)
+// ============================================================
+const ADMIN_PASSWORD = 'Tasr@jvs.com';
+ 
+window.openAdminLogin = function(){
+  openModal('🔒 Administration Access', `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Enter administrator password to access system controls.</p>
+    <div class="form-row"><label>Password</label>
+      <input type="password" id="adm-pwd" autocomplete="off" placeholder="Administrator password">
+    </div>
+    <div id="adm-login-msg"></div>
+    <button class="btn" style="width:100%" onclick="adminLogin()">Unlock</button>
+  `);
+  setTimeout(()=>{
+    const el = document.getElementById('adm-pwd');
+    if(el){
+      el.focus();
+      el.addEventListener('keydown', ev => { if(ev.key === 'Enter') adminLogin(); });
+    }
+  }, 100);
+};
+ 
+window.adminLogin = function(){
+  const pwd = document.getElementById('adm-pwd').value;
+  if(pwd === ADMIN_PASSWORD){
+    openAdminPanel();
+  } else {
+    document.getElementById('adm-login-msg').innerHTML = '<div class="msg err">Incorrect admin password</div>';
+    document.getElementById('adm-pwd').value = '';
+  }
+};
+ 
+window.openAdminPanel = function(){
+  const appEnabled   = state.settings.admin_app_enabled !== 'false';
+  const ownerEnabled = state.settings.admin_owner_enabled !== 'false';
+  const message      = state.settings.admin_disable_message || 'Service temporarily unavailable.';
+  const disabledPages = (state.settings.admin_pages_disabled || '').split(',').map(s=>s.trim()).filter(Boolean);
+ 
+  const allPages = [
+    {key:'overview',  label:'Overview'},
+    {key:'entries',   label:'All Entries'},
+    {key:'analysis',  label:'Analysis'},
+    {key:'vehicles',  label:'Vehicles'},
+    {key:'managers',  label:'Managers'},
+    {key:'custom',    label:'Custom Fields'},
+    {key:'export',    label:'Export'},
+    {key:'audit',     label:'Audit Log'},
+    {key:'settings',  label:'Settings'},
+  ];
+ 
+  openModal('🔒 Administration Panel', `
+    <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:8px;cursor:pointer;margin-bottom:10px">
+      <input type="checkbox" id="ap-app-enabled" ${appEnabled?'checked':''} style="width:auto;transform:scale(1.3);flex-shrink:0">
+      <div>
+        <div style="font-weight:600">App Active</div>
+        <div style="font-size:12px;color:var(--text-muted)">When OFF, app shows the disable message to everyone</div>
+      </div>
+    </label>
+ 
+    <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:8px;cursor:pointer;margin-bottom:14px">
+      <input type="checkbox" id="ap-owner-enabled" ${ownerEnabled?'checked':''} style="width:auto;transform:scale(1.3);flex-shrink:0">
+      <div>
+        <div style="font-weight:600">Admin Role Access</div>
+        <div style="font-size:12px;color:var(--text-muted)">When OFF, Admin can't login. Diesel managers still work.</div>
+      </div>
+    </label>
+ 
+    <div class="form-row">
+      <label>Disable Message</label>
+      <textarea id="ap-message" rows="3" style="width:100%;padding:10px;border:1px solid var(--border-dark);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;resize:vertical">${escapeHtml(message)}</textarea>
+      <div class="hint">Shown when app is disabled. e.g. "Payment due", "Technical issue, please wait"</div>
+    </div>
+ 
+    <div style="margin-top:18px;padding:12px;background:var(--surface);border-radius:8px">
+      <div style="font-weight:600;margin-bottom:4px">Admin Page Access</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Toggle individual Admin pages. Disabled pages vanish from the tab bar.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px">
+        ${allPages.map(p => `
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 8px;background:#fff;border:1px solid var(--border);border-radius:6px;cursor:pointer">
+            <input type="checkbox" class="ap-page" data-page="${p.key}" ${disabledPages.includes(p.key)?'':'checked'} style="width:auto">
+            ${p.label}
+          </label>
+        `).join('')}
+      </div>
+    </div>
+ 
+    <button class="btn" style="width:100%;margin-top:14px" onclick="saveAdminSettings()">Save Changes</button>
+  `);
+};
+ 
+window.saveAdminSettings = function(){
+  updateSetting('admin_app_enabled',   $('#ap-app-enabled').checked ? 'true' : 'false');
+  updateSetting('admin_owner_enabled', $('#ap-owner-enabled').checked ? 'true' : 'false');
+  updateSetting('admin_disable_message', $('#ap-message').value.trim() || 'Service temporarily unavailable.');
+  // Collect disabled pages — boxes that are UNCHECKED
+  const disabled = Array.from(document.querySelectorAll('.ap-page'))
+    .filter(cb => !cb.checked)
+    .map(cb => cb.dataset.page);
+  updateSetting('admin_pages_disabled', disabled.join(','));
+  closeModal(); toast('Administration settings saved','ok');
+  applyAdminState();
+};
+ 
+function applyAdminState(){
+  // If app is disabled → show disabled screen and force out
+  if(state.settings.admin_app_enabled === 'false'){
+    showDisabledScreen();
+    return;
+  }
+  // If admin role disabled and current user is owner → force logout
+  if(state.settings.admin_owner_enabled === 'false' && state.user && state.user.role === 'owner'){
+    state.user = null;
+    bootScreen();
+    toast('Admin access disabled by administrator','err');
+    return;
+  }
+  // If currently showing disabled screen but app is re-enabled → go back to normal
+  const disabled = $('#disabled-screen');
+  if(disabled && disabled.classList.contains('active')){
+    bootScreen();
+    if(state.user) renderDash();
+  }
+}
+ 
+function showDisabledScreen(){
+  // Hide all other screens
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const ds = $('#disabled-screen');
+  if(ds){
+    ds.classList.add('active');
+    const msgEl = $('#disabled-message-text');
+    if(msgEl) msgEl.textContent = state.settings.admin_disable_message || 'Service temporarily unavailable.';
+  }
+  document.body.classList.remove('lightbg');
 }
  
 // ============================================================
@@ -768,11 +1005,19 @@ function makePinPad(containerEl, opts){
     display.innerHTML = Array.from({length:shown}, (_,i) =>
       `<span class="pin-dot ${i<pin.length?'filled':''}"></span>`).join('');
   }
+  function tryAutoSubmit(){
+    if(!opts.expectedLength || !opts.onSubmit) return false;
+    const expected = typeof opts.expectedLength === 'function' ? opts.expectedLength() : opts.expectedLength;
+    if(expected && pin.length === expected){
+      setTimeout(() => { try { opts.onSubmit(pin); } catch(e){ console.error(e); } }, 120);
+      return true;
+    }
+    return false;
+  }
   function press(d){
-    if(d==='back') pin = pin.slice(0,-1);
-    else if(d==='ok'){ if(opts.onSubmit) opts.onSubmit(pin); return; }
-    else if(/^\d$/.test(d) && pin.length<maxLen) pin += d;
-    render();
+    if(d==='back'){ pin = pin.slice(0,-1); render(); return; }
+    if(d==='ok'){ if(opts.onSubmit) opts.onSubmit(pin); return; }
+    if(/^\d$/.test(d) && pin.length<maxLen){ pin += d; render(); tryAutoSubmit(); return; }
   }
   pad.addEventListener('click', e=>{
     const b = e.target.closest('[data-d]'); if(b) press(b.dataset.d);
@@ -788,18 +1033,30 @@ let _mgrPinPad = null, _ownerPinPad = null;
 function setupLoginPinPads(){
   _mgrPinPad = makePinPad($('#login-mgr-pin'), {
     onSubmit: pin => doManagerLogin(pin),
+    expectedLength: () => {
+      const id = parseInt($('#login-mgr-select').value);
+      const m = state.managers.find(m=>m.id===id);
+      return m && m.password ? m.password.length : 0;
+    },
   });
   _ownerPinPad = makePinPad($('#login-owner-pin'), {
     onSubmit: pin => doOwnerLogin(pin),
+    expectedLength: () => (state.settings.owner_password || '').length || 4,
   });
 }
 function doOwnerLogin(pin){
+  // Check if admin has disabled owner access
+  if(state.settings.admin_owner_enabled === 'false'){
+    $('#login-msg').innerHTML = '<div class="msg err">Admin access disabled by administrator</div>';
+    if(_ownerPinPad) _ownerPinPad.clear();
+    return;
+  }
   if(pin && pin === state.settings.owner_password){
-    state.user = {role:'owner', name:'Owner'};
+    state.user = {role:'owner', name:'Admin'};
     state.activeTab = 'overview';
     gotoDash();
   } else {
-    $('#login-msg').innerHTML = '<div class="msg err">Incorrect owner PIN</div>';
+    $('#login-msg').innerHTML = '<div class="msg err">Incorrect Admin PIN</div>';
     if(_ownerPinPad) _ownerPinPad.clear();
   }
 }
@@ -839,15 +1096,11 @@ $('#logout-btn').addEventListener('click', ()=>{
 // ============================================================
 function updateSyncPill(){
   const p = $('#sync-pill'), t = $('#sync-text');
-  if(!sb){
-    p.className = 'sync-pill sync-pending';
-    t.textContent = 'Local only';
-    return;
-  }
-  if(state.syncing){ p.className='sync-pill sync-syncing'; t.textContent='Syncing…'; return; }
-  if(!state.online){ p.className='sync-pill sync-offline'; t.textContent='Offline'; return; }
+  if(!sb){ p.className = 'sync-pill sync-disconnect'; t.textContent = 'Disconnect'; return; }
+  if(state.syncing){ p.className='sync-pill sync-pending'; t.textContent='Syncing…'; return; }
+  if(!state.online){ p.className='sync-pill sync-disconnect'; t.textContent='Disconnect'; return; }
   if(state.pendingOps.length>0){ p.className='sync-pill sync-pending'; t.textContent='Pending '+state.pendingOps.length; return; }
-  p.className = 'sync-pill sync-online'; t.textContent = 'Online · Synced';
+  p.className = 'sync-pill sync-live'; t.textContent = 'Live';
 }
  
 window.addEventListener('online', ()=>{ state.online = true; updateSyncPill(); trySync(); });
@@ -856,7 +1109,7 @@ window.addEventListener('offline',()=>{ state.online = false; updateSyncPill(); 
 async function pullAll(){
   if(!sb) return;
   try{
-    state.syncing = true; updateSyncPill();
+    state.syncing = true; _syncingStart = Date.now(); updateSyncPill();
     const [veh, mgr, cf, ent, st] = await Promise.all([
       sb.from('vehicles').select('*').order('name'),
       sb.from('managers').select('*').order('id'),
@@ -881,7 +1134,7 @@ async function pullAll(){
     }
     persist();
   }catch(e){ console.warn('pull error', e); }
-  finally{ state.syncing=false; updateSyncPill(); }
+  finally{ state.syncing=false; _syncingStart = 0; updateSyncPill(); }
 }
  
 function queueOp(op){
@@ -892,31 +1145,47 @@ function queueOp(op){
  
 async function trySync(){
   if(!sb || !state.online || state.syncing || state.pendingOps.length===0) return;
-  state.syncing = true; updateSyncPill();
-  const ops = [...state.pendingOps];
-  for(const op of ops){
-    try{
-      const { table, action, data, match } = op;
-      let res;
-      if(action==='upsert') res = await sb.from(table).upsert(data);
-      else if(action==='insert') res = await sb.from(table).insert(data);
-      else if(action==='update') res = await sb.from(table).update(data).match(match);
-      else if(action==='delete') res = await sb.from(table).delete().match(match);
-      if(res && res.error){
-        console.warn('sync error', op, res.error);
-        toast('Sync error: '+(res.error.message||'check console'), 'err');
-        break;
-      }
-      state.pendingOps = state.pendingOps.filter(p=>p.id!==op.id);
-      persist();
-    }catch(e){ console.warn('sync exception', e); break; }
+  // Wrap whole flow in try/finally so syncing flag CANNOT get stuck on
+  try {
+    state.syncing = true; _syncingStart = Date.now(); updateSyncPill();
+    const ops = [...state.pendingOps];
+    for(const op of ops){
+      try{
+        const { table, action, data, match } = op;
+        let res;
+        if(action==='upsert') res = await sb.from(table).upsert(data);
+        else if(action==='insert') res = await sb.from(table).insert(data);
+        else if(action==='update') res = await sb.from(table).update(data).match(match);
+        else if(action==='delete') res = await sb.from(table).delete().match(match);
+        if(res && res.error){
+          console.warn('sync error', op, res.error);
+          toast('Sync error: '+(res.error.message||'check console'), 'err');
+          break;
+        }
+        state.pendingOps = state.pendingOps.filter(p=>p.id!==op.id);
+        persist();
+      }catch(e){ console.warn('sync exception', e); break; }
+    }
+  } finally {
+    state.syncing = false; _syncingStart = 0;
+    updateSyncPill();
+    // Best-effort fresh pull after a successful flush; never let it leave syncing stuck
+    if(state.pendingOps.length===0 && sb && state.online){
+      try { await pullAll(); } catch(e){ console.warn('post-sync pull failed', e); }
+    }
+    try { renderDash({auto:true}); } catch(e){}
   }
-  state.syncing = false;
-  updateSyncPill();
-  // pull fresh data after push completes
-  if(state.pendingOps.length===0) await pullAll();
-  renderDash({auto:true});
 }
+ 
+// Watchdog: if syncing has been true for >20s, force-reset. Belt-and-suspenders
+// safety net so the pill cannot ever get permanently stuck on "Syncing…".
+let _syncingStart = 0;
+setInterval(()=>{
+  if(state.syncing && _syncingStart && Date.now() - _syncingStart > 20000){
+    console.warn('[TASR] syncing watchdog tripped — forcing reset');
+    state.syncing = false; _syncingStart = 0; updateSyncPill();
+  }
+}, 5000);
  
 // ============================================================
 // DATA MUTATIONS (write-through: local first, then queue+sync)
@@ -1033,9 +1302,10 @@ function renderDash(opts){
     return;
   }
   $('#who-name').textContent = state.user.name;
-  $('#who-role').textContent = state.user.role === 'owner' ? 'Owner · Full access' : 'Diesel Manager';
+  $('#who-role').textContent = state.user.role === 'owner' ? '🔒 Admin · Full access' : 'Diesel Manager';
  
-  const tabs = state.user.role === 'owner' ? [
+  const disabledPages = (state.settings.admin_pages_disabled || '').split(',').map(s=>s.trim()).filter(Boolean);
+  const allOwnerTabs = [
     {key:'overview',   label:'Overview'},
     {key:'entries',    label:'All Entries'},
     {key:'analysis',   label:'Analysis'},
@@ -1045,10 +1315,18 @@ function renderDash(opts){
     {key:'export',     label:'Export'},
     {key:'audit',      label:'Audit Log'},
     {key:'settings',   label:'Settings'},
-  ] : [
-    {key:'new-entry',  label:'New Entry'},
-    {key:'my-entries', label:'My Entries'},
   ];
+  const tabs = state.user.role === 'owner'
+    ? allOwnerTabs.filter(t => !disabledPages.includes(t.key))
+    : [
+      {key:'new-entry',  label:'New Entry'},
+      {key:'my-entries', label:'My Entries'},
+    ];
+ 
+  // If the user's currently active tab has been disabled by Admin, jump to first available
+  if(state.user.role === 'owner' && !tabs.some(t => t.key === state.activeTab)){
+    state.activeTab = tabs.length ? tabs[0].key : 'overview';
+  }
  
   $('#tabbar').innerHTML = tabs.map(t =>
     `<button class="tab ${state.activeTab===t.key?'active':''}" data-tab="${t.key}">${t.label}</button>`
@@ -1064,7 +1342,10 @@ function renderDash(opts){
   pages.appendChild(page);
  
   if(state.user.role === 'owner'){
-    if(state.activeTab==='overview') renderOverview(page);
+    // Guard: skip rendering for any tab that admin has disabled
+    if(disabledPages.includes(state.activeTab)){
+      page.innerHTML = '<div class="section"><div class="empty"><div class="em">🔒</div>This page has been disabled by administrator.</div></div>';
+    } else if(state.activeTab==='overview') renderOverview(page);
     else if(state.activeTab==='entries') renderAllEntries(page);
     else if(state.activeTab==='analysis') renderVehicleAnalysis(page);
     else if(state.activeTab==='vehicles') renderVehicles(page);
@@ -1230,6 +1511,60 @@ function calcAvg(entry, mode){
   return { value, formatted: value.toFixed(2)+' '+unit, meaningful: true, mode, span: between.length };
 }
  
+// Manual Consumption — auto-derived from "angul naap" (vehicle dipstick) stock readings.
+// Stock is measured PRE-FILL (dipstick before adding fuel). Formula:
+//   consumed = prev.stock + prev.qty − cur.stock
+// Then convert to km/L or L/hr using the HMR/km gap.
+// Returns { value, formatted, ... } on success OR { reason } when it can't compute,
+// so the UI can show WHY the value is missing.
+function calcManualConsumption(entry){
+  const veh = state.vehicles.find(v => v.id === entry.vehicle_id);
+  if(!veh) return { reason: 'Vehicle not found in master list' };
+  const isMachine = veh.type === 'machine';
+  const unit = isMachine ? 'L/hr' : 'km/L';
+  const t = new Date(entry.fill_time || entry.created_at).getTime();
+  const prev = state.entries
+    .filter(e => e.vehicle_id === entry.vehicle_id && e.id !== entry.id)
+    .filter(e => new Date(e.fill_time || e.created_at).getTime() < t)
+    .sort((a,b) => new Date(b.fill_time||b.created_at) - new Date(a.fill_time||a.created_at))[0];
+  if(!prev) return { reason: 'First entry for this vehicle — no previous fill to compare against' };
+ 
+  const prevStock = parseFloat(prev.stock);
+  if(isNaN(prevStock)) return { reason: 'Previous entry has no Vehicle Stock (Angul Naap) reading' };
+  const prevQty   = parseFloat(prev.quantity);
+  if(isNaN(prevQty)) return { reason: 'Previous entry has no Quantity' };
+  const curStock  = parseFloat(entry.stock);
+  if(isNaN(curStock)) return { reason: 'This entry has no Vehicle Stock (Angul Naap) reading' };
+ 
+  const consumed = (prevStock + prevQty) - curStock;
+  if(consumed <= 0) return { reason: `Stock readings inconsistent — computed consumption is ${consumed.toFixed(1)} L (current stock cannot exceed prev stock + prev fill)` };
+ 
+  const prevHmr = parseFloat(prev.hmr);
+  if(isNaN(prevHmr)) return { reason: 'Previous entry has no HMR/KM reading' };
+  const curHmr  = parseFloat(entry.hmr);
+  if(isNaN(curHmr)) return { reason: 'This entry has no HMR/KM reading' };
+ 
+  const delta = curHmr - prevHmr;
+  if(delta <= 0) return { reason: `HMR/KM did not increase (Δ ${delta}) — check readings` };
+ 
+  const value = isMachine ? consumed/delta : delta/consumed;
+  return { value, formatted: value.toFixed(2)+' '+unit, unit, consumed, delta };
+}
+ 
+// Difference between Manual (stock-derived) and GPS (admin-entered) consumption.
+// Returns { delta, pct, severity } or null when either side is missing.
+function calcConsDiff(entry){
+  const manual = calcManualConsumption(entry);
+  const gps = (entry.consumption != null && entry.consumption !== '' && !isNaN(+entry.consumption))
+    ? +entry.consumption : null;
+  if(!manual || manual.value === undefined || gps == null) return null;
+  const delta = manual.value - gps;
+  const pct = gps !== 0 ? (delta / gps) * 100 : 0;
+  const absPct = Math.abs(pct);
+  const severity = absPct < 10 ? 'ok' : (absPct < 20 ? 'warn' : 'bad');
+  return { delta, pct, severity, manualVal: manual.value, gpsVal: gps, unit: manual.unit };
+}
+ 
 // Persist + apply the avg-mode toggle
 window.setAvgMode = function(m){
   state.avgMode = m;
@@ -1260,9 +1595,12 @@ function renderEntriesTable(entries, opts={}){
   if(!entries.length) return `<div class="empty"><div class="em">⛽</div>No entries yet</div>`;
   const showMgr = opts.showManager !== false;
   const canEdit = opts.canEdit;
+  const isOwner = state.user && state.user.role === 'owner';
   const rows = entries.map(e => {
     const veh = state.vehicles.find(v=>v.id===e.vehicle_id);
     const vehDisplay = veh ? (veh.reg_no || veh.name) : (e.vehicle_name || '—');
+    const isMachine = veh && veh.type === 'machine';
+    const unit = isMachine ? 'L/hr' : 'km/L';
     const src = e.source==='other' ? (e.source_custom||'Other')
               : e.source==='bowser_t1' ? 'Bowser T1'
               : e.source==='bowser_t2' ? 'Bowser T2' : (e.source||'—');
@@ -1278,6 +1616,36 @@ function renderEntriesTable(entries, opts={}){
     const avgCell = avg
       ? `<b style="color:${avg.meaningful?'var(--success)':'var(--text-muted)'}">${avg.formatted}</b>${avg.meaningful?'':' <span style="font-size:10px;color:var(--text-soft)">~</span>'}`
       : '—';
+ 
+    // Manual consumption — auto-calc from stock readings (visible to all)
+    const manual = calcManualConsumption(e);
+    const manualCell = (manual && manual.value !== undefined)
+      ? `<b>${manual.value.toFixed(2)}</b> <span style="font-size:10px;color:var(--text-soft)">${unit}</span>`
+      : `<span style="color:var(--text-soft);cursor:help;border-bottom:1px dotted var(--text-soft)" title="${escapeHtml(manual && manual.reason ? manual.reason : 'Cannot compute')}">—</span>`;
+ 
+    // GPS consumption — admin-entered (with quick-add for owner, read-only for managers)
+    let gpsCell;
+    if(e.consumption != null && e.consumption !== '' && !isNaN(+e.consumption)){
+      const cv = (+e.consumption).toFixed(2);
+      gpsCell = isOwner
+        ? `<b style="color:var(--accent-dark)">${cv}</b> <span style="font-size:10px;color:var(--text-soft)">${unit}</span> <button class="btn xs ghost" style="font-size:10px;padding:1px 5px;margin-left:2px" onclick="setConsumptionModal('${e.id}')" title="Edit GPS consumption">✎</button>`
+        : `<b style="color:var(--accent-dark)">${cv}</b> <span style="font-size:10px;color:var(--text-soft)">${unit}</span>`;
+    } else {
+      gpsCell = isOwner
+        ? `<button class="btn xs ghost" style="font-size:11px;padding:2px 8px" onclick="setConsumptionModal('${e.id}')">+ Add</button>`
+        : '<span style="color:var(--text-soft)">—</span>';
+    }
+ 
+    // Δ — difference between manual and GPS, color-coded by severity
+    const diff = calcConsDiff(e);
+    let diffCell = '<span style="color:var(--text-soft)">—</span>';
+    if(diff){
+      const color = diff.severity === 'ok' ? 'var(--success)'
+                  : diff.severity === 'warn' ? '#a16207' : 'var(--danger)';
+      const sign = diff.delta > 0 ? '+' : '';
+      diffCell = `<b style="color:${color}">${sign}${diff.delta.toFixed(2)}</b><br><span style="font-size:10px;color:var(--text-soft)">${sign}${diff.pct.toFixed(1)}%</span>`;
+    }
+ 
     return `<tr>
       <td>${fmtDT(e.fill_time||e.created_at)}</td>
       ${showMgr?`<td>${escapeHtml(e.manager_name||'—')}</td>`:''}
@@ -1287,6 +1655,9 @@ function renderEntriesTable(entries, opts={}){
       <td>${fillBadge}</td>
       <td>${e.stock!=null && e.stock!=='' ? (+e.stock).toFixed(1) : '—'}</td>
       <td>${avgCell}</td>
+      <td>${manualCell}</td>
+      <td>${gpsCell}</td>
+      <td>${diffCell}</td>
       <td>${escapeHtml(src)}</td>
       ${cfCells}
       <td>${editBadge}</td>
@@ -1295,7 +1666,7 @@ function renderEntriesTable(entries, opts={}){
   }).join('');
   return `<div class="table-wrap"><table>
     <thead><tr>
-      <th>Time</th>${showMgr?'<th>Manager</th>':''}<th>Vehicle</th><th>HMR</th><th>Qty</th><th>Fill</th><th>Stock</th><th>Avg ${state.avgMode==='full2full'?'(F2F)':'(Trip)'}</th><th>Source</th>${state.customFields.map(f=>`<th>${escapeHtml(f.field_label)}</th>`).join('')}<th></th>${canEdit?'<th></th>':''}
+      <th>Time</th>${showMgr?'<th>Manager</th>':''}<th>Vehicle</th><th>HMR</th><th>Qty</th><th>Fill</th><th title="Vehicle dipstick reading (Angul Naap)">Veh Stock</th><th>Avg ${state.avgMode==='full2full'?'(F2F)':'(Trip)'}</th><th title="Auto-calculated from stock readings">Manual Cons.</th><th title="Admin-entered consumption (from GPS / telematics)">GPS Cons.</th><th title="Manual − GPS difference">Δ</th><th>Source</th>${state.customFields.map(f=>`<th>${escapeHtml(f.field_label)}</th>`).join('')}<th></th>${canEdit?'<th></th>':''}
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
@@ -1837,9 +2208,13 @@ window.doExport = function(){
       'HMR':e.hmr||'',
       'Quantity (L)':+e.quantity||0,
       'Fill Type': e.fill_type==='full'?'Full':(e.fill_type==='not_full'?'Not Full':''),
-      'Bowser Stock Reading': e.stock != null && e.stock !== '' ? +e.stock : '',
+      'Vehicle Stock (Angul Naap)': e.stock != null && e.stock !== '' ? +e.stock : '',
       'Trip Avg': (function(){ const a = calcAvg(e,'trip'); return a ? a.formatted : ''; })(),
       'Full-to-Full Avg': (function(){ const a = calcAvg(e,'full2full'); return a ? a.formatted : ''; })(),
+      'Manual Consumption (auto)': (function(){ const m = calcManualConsumption(e); return (m && m.value !== undefined) ? +m.value.toFixed(3) : ''; })(),
+      'GPS Consumption (Admin)': (e.consumption != null && e.consumption !== '' && !isNaN(+e.consumption)) ? (+e.consumption) : '',
+      'Δ Manual − GPS': (function(){ const d = calcConsDiff(e); return d ? +d.delta.toFixed(3) : ''; })(),
+      'Δ %': (function(){ const d = calcConsDiff(e); return d ? +d.pct.toFixed(2) : ''; })(),
       'Source':e.source==='other'?(e.source_custom||'Other'):(e.source==='bowser_t1'?'Bowser T1':(e.source==='bowser_t2'?'Bowser T2':e.source||'')),
       'Edit Count':e.edit_count||0,
       'Last Edited':e.edited_at?fmtDT(e.edited_at):'',
@@ -1955,7 +2330,7 @@ function renderSettings(page){
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
         💡 Wipe button erases local data on this device only — server data is safe.
       </div>
-      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v1.9</div>
+      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v2.2</div>
     </div>
   `;
   $('#set-calc').addEventListener('change', e=>{
@@ -2023,8 +2398,8 @@ function renderNewEntry(page){
       </div>
  
       <div class="form-row">
-        <label>Bowser Stock Reading <span style="color:var(--text-soft);text-transform:none;font-weight:400;letter-spacing:0">(manual)</span></label>
-        <input type="number" step="0.1" id="ne-stock" placeholder="Physical meter reading on the bowser" inputmode="decimal">
+        <label>Vehicle Stock <span style="color:var(--text-soft);text-transform:none;font-weight:400;letter-spacing:0">(Angul Naap)</span></label>
+        <input type="number" step="0.1" id="ne-stock" placeholder="Dipstick reading of the vehicle tank" inputmode="decimal">
       </div>
  
       <div class="form-row">
@@ -2247,10 +2622,14 @@ window.editEntryModal = function(id){
       </div>
     </div>
     <div class="form-row">
-      <label>Bowser Stock Reading</label>
+      <label>Vehicle Stock <span style="color:var(--text-soft);font-weight:400">(Angul Naap)</span></label>
       <input type="number" step="0.1" id="ee-stock" value="${e.stock||''}" inputmode="decimal">
     </div>
     <div class="form-row"><label>Time</label><input type="datetime-local" id="ee-time" value="${tLocal}"></div>
+    <div class="form-row">
+      <label>GPS Consumption <span style="color:var(--text-soft);font-weight:400">(${veh && veh.type==='machine'?'L/hr':'km/L'} — Admin-set, visible to all)</span></label>
+      <input type="number" step="0.01" id="ee-consumption" value="${e.consumption!=null?(+e.consumption):''}" placeholder="From GPS / telematics reading" inputmode="decimal">
+    </div>
     <div class="form-row"><label>Source</label>
       <select id="ee-src">
         <option value="bowser_t1" ${e.source==='bowser_t1'?'selected':''}>Bowser T1</option>
@@ -2310,7 +2689,8 @@ window.saveEditEntry = function(id){
     if(el){ const v = el.value.trim(); if(v) custom_data[f.field_key]=v; else delete custom_data[f.field_key]; }
   });
  
-  updateEntry(id, {
+  // Consumption (owner only — field present in edit modal for owner)
+  const patch = {
     vehicle_id:veh.id, vehicle_name: veh.reg_no || veh.name,
     hmr:parseFloat($('#ee-hmr').value)||null,
     quantity:parseFloat($('#ee-qty').value)||null,
@@ -2319,8 +2699,61 @@ window.saveEditEntry = function(id){
     fill_type: (document.querySelector('#ee-fill-pills .source-pill.active')||{}).dataset?.fill || 'full',
     stock: parseFloat($('#ee-stock').value) || null,
     custom_data,
-  });
+  };
+  const consEl = $('#ee-consumption');
+  if(consEl){
+    const cv = consEl.value.trim();
+    patch.consumption = cv === '' ? null : (parseFloat(cv) || null);
+  }
+  updateEntry(id, patch);
   closeModal(); renderDash(); toast('Entry updated','ok');
+};
+ 
+// ----- Consumption quick-add modal (owner only) -----
+window.setConsumptionModal = function(id){
+  if(!state.user || state.user.role !== 'owner'){ toast('Only Admin can set GPS consumption','err'); return; }
+  const e = state.entries.find(x=>x.id===id); if(!e) return;
+  const veh = state.vehicles.find(v=>v.id===e.vehicle_id);
+  const isMachine = veh && veh.type === 'machine';
+  const unit = isMachine ? 'L/hr' : 'km/L';
+  const vehDisplay = veh ? (veh.reg_no || veh.name) : (e.vehicle_name || '—');
+  const currentVal = (e.consumption != null && e.consumption !== '') ? (+e.consumption).toString() : '';
+ 
+  openModal('Set GPS Consumption', `
+    <div style="background:var(--surface);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px">
+      <div><b>${escapeHtml(vehDisplay)}</b> · ${fmtDT(e.fill_time||e.created_at)}</div>
+      <div style="color:var(--text-muted);margin-top:2px">${(+e.quantity||0).toFixed(1)} L issued · HMR ${e.hmr||'—'}</div>
+    </div>
+    <div class="form-row">
+      <label>GPS Consumption value <span style="color:var(--text-soft);font-weight:400">(${unit})</span></label>
+      <input type="number" step="0.01" id="cons-val" value="${escapeHtml(currentVal)}" placeholder="e.g. ${isMachine?'4.5':'8.2'}" inputmode="decimal" autofocus>
+      <div class="hint">Reading from GPS / telematics system. Visible to all managers. Leave blank and save to clear.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      ${currentVal ? `<button class="btn ghost" style="flex:1" onclick="saveConsumption('${id}', true)">Clear</button>` : ''}
+      <button class="btn" style="flex:2" onclick="saveConsumption('${id}', false)">Save</button>
+    </div>
+  `);
+  setTimeout(()=>{
+    const el = document.getElementById('cons-val');
+    if(el){ el.focus(); el.select(); el.addEventListener('keydown', ev => { if(ev.key === 'Enter') saveConsumption(id, false); }); }
+  }, 80);
+};
+ 
+window.saveConsumption = function(id, clear){
+  const e = state.entries.find(x=>x.id===id); if(!e) return;
+  let val = null;
+  if(!clear){
+    const raw = ($('#cons-val').value || '').trim();
+    if(raw !== ''){
+      val = parseFloat(raw);
+      if(isNaN(val)){ toast('Enter a valid number','err'); return; }
+    }
+  }
+  updateEntry(id, { consumption: val });
+  closeModal();
+  renderDash();
+  toast(val === null ? 'GPS Consumption cleared' : 'GPS Consumption saved','ok');
 };
  
 // ============================================================
@@ -2338,11 +2771,12 @@ updateSyncPill();
   if(sb){
     await pullAll();
     bootScreen();              // re-evaluate calc/login after settings load
+    applyAdminState();         // honour admin kill-switch from server
     if(state.user) renderDash({auto:true});
   }
 })();
 setInterval(()=>{ if(state.online) trySync(); }, 15000);
-setInterval(()=>{ if(state.online && state.user) pullAll().then(()=>{ if(state.user) renderDash({auto:true}); }); }, 30000);
+setInterval(()=>{ if(state.online && state.user) pullAll().then(()=>{ applyAdminState(); if(state.user) renderDash({auto:true}); }); }, 30000);
 </script>
 </body>
 </html>
