@@ -63,6 +63,7 @@ html{background:#000}
   flex-direction:column; justify-content:flex-end;
   padding:20px 14px max(20px, env(safe-area-inset-bottom)) 14px;
   max-width:430px; margin:0 auto;
+  position:relative;
 }
 #calc-screen.active{ display:flex; }
 .calc{ width:100%; background:transparent; padding:0; border-radius:0; box-shadow:none; }
@@ -81,6 +82,10 @@ html{background:#000}
   background:#333; color:#fff;
   display:flex; align-items:center; justify-content:center;
   transition:filter .1s, transform .05s; user-select:none;
+  /* Mobile touch optimizations: no double-tap zoom, no tap highlight */
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  cursor:pointer;
 }
 .calc-btn:active{ filter:brightness(1.5); transform:scale(.97); }
 .calc-btn.op{ background:#ff9500; color:#fff; font-size:38px; }
@@ -520,6 +525,11 @@ body.lightbg .admin-btn{
       <button class="calc-btn eq" data-k="=">=</button>
     </div>
   </div>
+  <!-- v2.4 indicator: tiny dot bottom-center. Visible when user taps any button (briefly). -->
+  <div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;pointer-events:none;font-size:9px;color:#555;letter-spacing:1px">
+    <span id="calc-debug" style="display:inline-block;min-width:8px;color:#888"></span>
+    <span style="opacity:.35;margin-left:6px">v2.4</span>
+  </div>
 </div>
  
 <!-- ==================== LOGIN SCREEN ==================== -->
@@ -560,7 +570,7 @@ body.lightbg .admin-btn{
 <!-- ==================== DASHBOARD SCREEN ==================== -->
 <div id="dash-screen" class="screen">
   <div class="topbar">
-    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v2.3</span></div>
+    <div class="brand">TASR <span class="accent">BharatNext</span> <span style="font-size:10px;color:var(--text-soft);font-weight:500">v2.4</span></div>
     <span id="sync-pill" class="sync-pill sync-online"><span class="dot"></span><span id="sync-text">Online</span></span>
     <div class="topbar-spacer"></div>
     <div class="who"><b id="who-name">—</b><span id="who-role">—</span></div>
@@ -854,10 +864,32 @@ function calcPress(k){
   calcRender();
 }
  
-$('#calc-screen').addEventListener('click', e=>{
-  const b = e.target.closest('[data-k]');
-  if(b) calcPress(b.dataset.k);
+// Calc input — MAXIMUM defensive. Multiple events, document-level, with
+// visible on-screen diagnostic. CSS :active fires (user sees flash) which
+// proves touchstart works; so we bind touchstart too, not just click.
+let _calcLastTap = 0;
+let _calcLastBtn = null;
+function handleCalcInput(e){
+  const b = (e.target && e.target.closest && e.target.closest('[data-k]'));
+  if(!b) return;
+  // Dedup so same button hit by touchstart+pointerup+click only fires ONCE
+  const now = Date.now();
+  if(now - _calcLastTap < 350 && _calcLastBtn === b) return;
+  _calcLastTap = now; _calcLastBtn = b;
+  // Visible diagnostic — appears in the small dot at the bottom of calc.
+  // If this updates when user taps, handler IS firing.
+  const dbg = document.getElementById('calc-debug');
+  if(dbg){ dbg.textContent = '·'; setTimeout(()=>{ if(dbg) dbg.textContent=''; }, 250); }
+  calcPress(b.dataset.k);
+}
+// Listen on DOCUMENT — bypasses any container-level z-index / pointer-events trap
+['click','pointerup','touchstart'].forEach(evt => {
+  document.addEventListener(evt, e => {
+    if(!$('#calc-screen').classList.contains('active')) return;
+    handleCalcInput(e);
+  }, evt === 'touchstart' ? { passive: true } : false);
 });
+console.log('[TASR Fuel v2.4] Calc input handlers attached at document level (click + pointerup + touchstart)');
  
 // keyboard support
 document.addEventListener('keydown', e=>{
@@ -2481,7 +2513,7 @@ function renderSettings(page){
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
         💡 Wipe button erases local data on this device only — server data is safe.
       </div>
-      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v2.3</div>
+      <div style="font-size:10px;color:var(--text-soft);margin-top:14px;text-align:right">v2.4</div>
     </div>
   `;
   $('#set-calc').addEventListener('change', e=>{
@@ -2932,4 +2964,3 @@ setInterval(()=>{ if(state.online && state.user) pullAll().then(()=>{ applyAdmin
 </body>
 </html>
  
-Artifact storage is temporarily unavailable. Please retry.
